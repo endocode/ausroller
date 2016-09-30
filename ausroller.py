@@ -87,30 +87,42 @@ class Ausroller(object):
 
     def show_rollout(self):
         print "Rollout %s in version %s" % (self.app_name, self.app_version)
-        print self.render_template('deployment')
-        print self.render_template('configmap')
+        d_yaml = self.render_template('deployment')
+        c_yaml = self.render_template('configmap')
+        self.write_yamls({'deployment': d_yaml, 'configmap': c_yaml})
 
-    def write_yaml(self, resource, yaml):
-        repo = repository.GitRepository(repopath)
+    def write_yamls(self, resources):
+        repo = repository.GitRepository(self.repopath)
         (repo_is_clean, repo_msg) = repo.is_clean()
         if not repo_is_clean:
             print "Git repo is not in a clean state! Exiting.."
             sys.exit(1)
 
-        outfile = repopath + '/rollout/' + resource + \
-            's/%s-' + resource + '.yaml' % (app_name)
-        with open(outfile, 'w') as out:
-            out.write(yaml)
-        repo.add_files(outfile)
+        files_to_commit = []
+        for resource in resources.keys():
+            outfile = self.rollout_path + resource + \
+                's/' + self.app_name + '-' + resource + '.yaml'
+            with open(outfile, 'w') as out:
+                out.write(resources[resource])
+                # flush & sync to avoid git adding an empty file
+                out.flush()
+                os.fsync(out)
+                repo.add_files(outfile)
+                files_to_commit.append(outfile)
+        self.commit_rollout(files_to_commit)
+
+    def commit_rollout(self, files_to_commit):
+        repo = repository.GitRepository(self.repopath)
         (repo_is_clean, repo_msg) = repo.is_clean()
         if not repo_is_clean:
-            repo.commit_files(outfile,
-                              "Created %s-%s.yaml with version %s\n\n%s" %
-                              (app_name, resource,
-                               app_version, commit_message))
-        print repo.show("rollout/" + resource + "s")
-    else:
-        print "Definition of " + resource + " already exists."
+            repo.commit_files(files_to_commit,
+                              "Created rollout for %s with version %s\n\n%s" %
+                              (self.app_name,
+                               self.app_version,
+                               self.commit_message))
+            print repo.show(self.rollout_path)
+        else:
+            print "Definition of rollout already exists. Nothing changed."
 
 
 def rollout_deployment_yaml(app_name, repopath):
@@ -164,7 +176,6 @@ def rollout_deployment_yaml(app_name, repopath):
 def main():
     a = Ausroller()
     a.show_rollout()
-    a.write_yaml()
 
     print a.__dict__
 
