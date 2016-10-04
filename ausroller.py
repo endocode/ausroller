@@ -25,7 +25,7 @@ class Ausroller(object):
         self.rollout_path = self.repopath + '/rollout/'
         self.variablesfile = os.environ['HOME'] + "/.ausroller_secrets.json"
         self.read_variables()
-        self.kubectl_cmd = ['/bin/echo', 'kubectl',
+        self.kubectl_cmd = ['kubectl',
                             '--namespace=%s' % self.tenant]
 
     def parse_args(self):
@@ -140,7 +140,7 @@ class Ausroller(object):
                     if res.startswith(resource + '/%s-%s' %
                                       (self.app_name, resource)):
                         print "Found: %s" % res
-                        cmd = self.kubectl_cmd + ['get', resource, res]
+                        cmd = self.kubectl_cmd + ['get', res]
                         print subprocess.check_output(cmd)
                         resource_exists = True
                 if not resource_exists:
@@ -151,28 +151,28 @@ class Ausroller(object):
                 print e
                 sys.exit(1)
 
-        if not resource_exists:
-            # No resource for app_name found. Start it.
-            cmd = self.kubectl_cmd + ['create', '-f', self.rollout_path +
-                                      '%ss/%s-%s.yaml' %
-                                      (resource, self.app_name, resource)]
-            try:
-                create_out = subprocess.check_output(cmd)
-                print "Created %s for \"%s\"" % (resource, self.app_name)
-            except:
-                print "Creating %s failed:" % resource
-                raise
-        else:
-            # resource for app_name existing. Let's update!
-            cmd = self.kubectl_cmd + ['apply', '-f', rollout_path +
-                                      '%ss/%s-%s.yaml' % (resource,
-                                                          self.app_name,
-                                                          resource)]
-            try:
-                update_out = subprocess.check_output(cmd)
-            except:
-                print "Applying the %s failed:" % resource
-                raise
+            if not resource_exists:
+                # No resource for app_name found. Start it.
+                cmd = self.kubectl_cmd + ['create', '-f', self.rollout_path +
+                                          '%ss/%s-%s.yaml' %
+                                          (resource, self.app_name, resource)]
+                try:
+                    create_out = subprocess.check_output(cmd)
+                    print "Created %s for \"%s\"" % (resource, self.app_name)
+                except:
+                    print "Creating %s failed:" % resource
+                    raise
+            else:
+                # resource for app_name existing. Let's update!
+                cmd = self.kubectl_cmd + ['apply', '-f', self.rollout_path +
+                                          '%ss/%s-%s.yaml' % (resource,
+                                                              self.app_name,
+                                                              resource)]
+                try:
+                    update_out = subprocess.check_output(cmd)
+                except:
+                    print "Applying the %s failed:" % resource
+                    raise
 
 
 def main():
