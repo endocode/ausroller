@@ -20,10 +20,13 @@ class Ausroller(object):
         if not self.configfile:
             self.configfile = os.environ['HOME'] + "/.ausroller.ini"
         self.read_config()
+        # set paths and read in the json file with the secrets
         self.templates_path = self.repopath + '/templates/'
         self.rollout_path = self.repopath + '/rollout/'
         self.variablesfile = os.environ['HOME'] + "/.ausroller_secrets.json"
         self.read_variables()
+        self.kubectl_cmd = ['/bin/echo', 'kubectl',
+                            '--namespace=%s' % self.tenant]
 
     def parse_args(self):
         parser = argparse.ArgumentParser()
@@ -38,10 +41,13 @@ class Ausroller(object):
                             help='Path to config file [$HOME/.ausroller.ini]')
         parser.add_argument('-d', '--dryrun', action='store_true',
                             help='Don\'t do anything just print')
+        parser.add_argument('-t', '--tenant', type=str, required=True,
+                            help='Which tenant to rollout on')
         args = parser.parse_args()
 
         self.app_name = args.app
         self.app_version = args.version
+        self.tenant = args.tenant
         self.commit_message = args.message
         self.is_dryrun = args.dryrun
         self.configfile = args.config
@@ -85,7 +91,7 @@ class Ausroller(object):
             sys.exit(1)
         return template.render(self.variables, app_version=self.app_version)
 
-    def show_rollout(self):
+    def prepare_rollout(self):
         print "Rollout %s in version %s" % (self.app_name, self.app_version)
         d_yaml = self.render_template('deployment')
         c_yaml = self.render_template('configmap')
@@ -124,58 +130,55 @@ class Ausroller(object):
         else:
             print "Definition of rollout already exists. Nothing changed."
 
+    def rollout(self):
+        for resource in ['configmap', 'deployment']:
+            try:
+                cmd = self.kubectl_cmd + ['get', resource + 's', '-oname']
+                out = subprocess.check_output(cmd)
+                resource_exists = False
+                for res in out.split('\n'):
+                    if res.startswith(resource + '/%s-%s' %
+                                      (self.app_name, resource)):
+                        print "Found: %s" % res
+                        cmd = self.kubectl_cmd + ['get', resource, res]
+                        print subprocess.check_output(cmd)
+                        resource_exists = True
+                if not resource_exists:
+                    print "No %s of \"%s\" found." % (resource,
+                                                      self.app_name)
+            except subprocess.CalledProcessError as e:
+                print "Something went wrong while calling kubectl."
+                print e
+                sys.exit(1)
 
-def rollout_deployment_yaml(app_name, repopath):
-    '''
-        1. Rollout ohne existierenden RC
-        2. Rollout mit upgrade/downgrade des existierenden RC
-    '''
-    try:
-        out = subprocess.check_output(['kubectl',
-                                       '--insecure-skip-tls-verify=true',
-                                       'get', 'deployments', '-oname'])
-        deployment_running = False
-        for deployment in out.split('\n'):
-            if deployment.startswith('deployment/%s-deployment' % app_name):
-                print "Found: %s" % deployment
-                print subprocess.check_output(['kubectl',
-                                               '--insecure-skip-tls-verify=true',
-                                               'get', deployment])
-                deployment_running = True
-
-        if not deployment_running:
-            print "No deployment of application \"%s\" running." % app_name
-    except subprocess.CalledProcessError as e:
-        print "Something went wrong while calling kubectl."
-        print e
-        sys.exit(1)
-
-    if not deployment_running:
-        # No running deployment for app_name found. Start it.
-        create_cmd = ['kubectl', '--insecure-skip-tls-verify=true',
-                      'create', '-f', repopath +
-                      '/rollout/deployments/%s-deployment.yaml' % app_name]
-        try:
-            create_out = subprocess.check_output(create_cmd)
-            print "Created deployment for \"%s\"" % app_name
-        except:
-            print "Creating deployment failed:"
-            raise
-    else:
-        # deployment for app_name already running. Let's update!
-        update_cmd = ['kubectl', '--insecure-skip-tls-verify=true',
-                      'apply', '-f', repopath +
-                      '/rollout/deployments/%s-deployment.yaml' % app_name]
-        try:
-            update_out = subprocess.check_output(update_cmd)
-        except:
-            print "Applying the deployment failed:"
-            raise
+        if not resource_exists:
+            # No resource for app_name found. Start it.
+            cmd = self.kubectl_cmd + ['create', '-f', self.rollout_path +
+                                      '%ss/%s-%s.yaml' %
+                                      (resource, self.app_name, resource)]
+            try:
+                create_out = subprocess.check_output(cmd)
+                print "Created %s for \"%s\"" % (resource, self.app_name)
+            except:
+                print "Creating %s failed:" % resource
+                raise
+        else:
+            # resource for app_name existing. Let's update!
+            cmd = self.kubectl_cmd + ['apply', '-f', rollout_path +
+                                      '%ss/%s-%s.yaml' % (resource,
+                                                          self.app_name,
+                                                          resource)]
+            try:
+                update_out = subprocess.check_output(cmd)
+            except:
+                print "Applying the %s failed:" % resource
+                raise
 
 
 def main():
     a = Ausroller()
-    a.show_rollout()
+    a.prepare_rollout()
+    a.rollout()
 
     print a.__dict__
 
