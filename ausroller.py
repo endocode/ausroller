@@ -58,14 +58,14 @@ class Ausroller(object):
         try:
             cp.read(self.configfile)
         except:
-            print "Cannot read from configfile \"%s\"!" % self.configfile
+            print("Cannot read configuration file \"{}\"!".format(self.configfile))
             sys.exit(1)
 
         try:
             self.repopath = cp.get('ausroller', 'repopath')
         except:
-            print "Cannot read 'repopath' from configfile \"%s\"!"\
-                  % self.configfile
+            print("Cannot read 'repopath' from configuration file \"{}\"!".format(
+                self.configfile))
             sys.exit(1)
 
     def read_variables(self):
@@ -75,7 +75,7 @@ class Ausroller(object):
             with open(self.variablesfile) as f:
                 self.variables = json.load(f)
         except:
-            print "Cannot read from variablesfile \"%s\"!" % self.variablesfile
+            print("Cannot read variables from \"{}\"!".format(self.variablesfile))
             sys.exit(1)
 
     def render_template(self, resource):
@@ -85,15 +85,16 @@ class Ausroller(object):
         env = Environment(
             loader=FileSystemLoader(os.path.join(self.templates_path, resource + 's')))
         try:
-            template = env.get_template(self.app_name + '-' +
-                                        resource + '.tpl.yaml')
+            template = env.get_template(
+                "{}-{}.tpl.yaml".format(self.app_name, resource))
         except exceptions.TemplateNotFound as e:
-            print "Template \"%s\" not found." % e
+            print("Template \"{}\" not found.".format(e))
             sys.exit(1)
         return template.render(self.variables, app_version=self.app_version)
 
     def prepare_rollout(self):
-        print "Rollout %s in version %s" % (self.app_name, self.app_version)
+        print("Preparing rollout of {} in version {}".format(
+            self.app_name, self.app_version))
         d_yaml = self.render_template('deployment')
         c_yaml = self.render_template('configmap')
         self.write_yamls({'deployment': d_yaml, 'configmap': c_yaml})
@@ -102,7 +103,7 @@ class Ausroller(object):
         repo = repository.GitRepository(self.repopath)
         (repo_is_clean, repo_msg) = repo.is_clean()
         if not repo_is_clean:
-            print "Git repo is not in a clean state! Exiting.."
+            print("Git repo is not in a clean state! Exiting..")
             sys.exit(1)
 
         files_to_commit = []
@@ -123,13 +124,13 @@ class Ausroller(object):
         (repo_is_clean, repo_msg) = repo.is_clean()
         if not repo_is_clean:
             repo.commit_files(files_to_commit,
-                              "Created rollout for %s with version %s\n\n%s" %
-                              (self.app_name,
-                               self.app_version,
-                               self.commit_message))
-            print repo.show(self.rollout_path)
+                              "Created rollout for {} with version {}\n\n{}".format(
+                                  self.app_name,
+                                   self.app_version,
+                                   self.commit_message))
+            print(repo.show(self.rollout_path))
         else:
-            print "Definition of rollout already exists. Nothing changed."
+            print("Definition of rollout already exists. Nothing changed.")
 
     def rollout(self):
         for resource in ['configmap', 'deployment']:
@@ -141,17 +142,16 @@ class Ausroller(object):
                 for res in out.split('\n'):
                     if res.startswith(resource + '/%s-%s' %
                                       (self.app_name, resource)):
-                        print "Found: %s" % res
+                        print("Found: {}".format(res))
                         cmd = shlex.split(
                             "{} get {}".format(self.kubectl_cmd, res))
-                        print subprocess.check_output(cmd)
+                        print(subprocess.check_output(cmd))
                         resource_exists = True
                 if not resource_exists:
-                    print "No %s of \"%s\" found." % (resource,
-                                                      self.app_name)
+                    print("No {} of \"{}\" found.".format(
+                        resource, self.app_name))
             except subprocess.CalledProcessError as e:
-                print "Something went wrong while calling kubectl."
-                print e
+                print("Something went wrong while calling kubectl.\n{}".format(e))
                 sys.exit(1)
 
             if not resource_exists:
@@ -160,9 +160,10 @@ class Ausroller(object):
                     self.rollout_path, "{}s".format(resource), "{}-{}.yaml".format(self.app_name, resource))))
                 try:
                     create_out = subprocess.check_output(cmd)
-                    print "Created %s for \"%s\"" % (resource, self.app_name)
+                    print("Created {} for \"{}\"".format(
+                        resource, self.app_name))
                 except:
-                    print "Creating %s failed:" % resource
+                    print("Creating {} failed:".format(resource))
                     raise
             else:
                 # resource for app_name exists. Let's update!
@@ -171,7 +172,7 @@ class Ausroller(object):
                 try:
                     update_out = subprocess.check_output(cmd)
                 except:
-                    print "Applying the %s failed:" % resource
+                    print("Applying the {} failed:".format(resource))
                     raise
 
 
@@ -180,7 +181,7 @@ def main():
     a.prepare_rollout()
     a.rollout()
 
-    print a.__dict__
+    print(a.__dict__)
 
 if __name__ == '__main__':
     main()
