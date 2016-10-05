@@ -12,6 +12,8 @@ import json
 import shlex
 
 
+RESOURCES = ["configmap", "deployment", "service"]
+
 class Ausroller(object):
 
     def __init__(self):
@@ -95,9 +97,10 @@ class Ausroller(object):
     def prepare_rollout(self):
         print("Preparing rollout of {} in version {}".format(
             self.app_name, self.app_version))
-        d_yaml = self.render_template('deployment')
-        c_yaml = self.render_template('configmap')
-        self.write_yamls({'deployment': d_yaml, 'configmap': c_yaml})
+        result_map = {}
+        for resource in RESOURCES:
+            result_map[resource] = self.render_template(resource)
+        self.write_yamls(result_map)
 
     def write_yamls(self, resources):
         repo = repository.GitRepository(self.repopath)
@@ -133,7 +136,7 @@ class Ausroller(object):
             print("Definition of rollout already exists. Nothing changed.")
 
     def rollout(self):
-        for resource in ['configmap', 'deployment']:
+        for resource in RESOURCES:
             try:
                 cmd = shlex.split(
                     "{} get {} -oname".format(self.kubectl_cmd, resource + "s"))
