@@ -9,6 +9,7 @@ import subprocess
 import ConfigParser
 import os
 import json
+import shlex
 
 
 class Ausroller(object):
@@ -26,8 +27,7 @@ class Ausroller(object):
         self.rollout_path = os.path.join(self.repopath, 'rollout')
         self.variablesfile = os.path.join(home_dir, ".ausroller_secrets.json")
         self.read_variables()
-        self.kubectl_cmd = ['kubectl',
-                            '--namespace=%s' % self.tenant]
+        self.kubectl_cmd = 'kubectl --namespace={}'.format(self.tenant)
 
     def parse_args(self):
         parser = argparse.ArgumentParser()
@@ -134,14 +134,16 @@ class Ausroller(object):
     def rollout(self):
         for resource in ['configmap', 'deployment']:
             try:
-                cmd = self.kubectl_cmd + ['get', resource + 's', '-oname']
+                cmd = shlex.split(
+                    "{} get {} -oname".format(self.kubectl_cmd, resource + "s"))
                 out = subprocess.check_output(cmd)
                 resource_exists = False
                 for res in out.split('\n'):
                     if res.startswith(resource + '/%s-%s' %
                                       (self.app_name, resource)):
                         print "Found: %s" % res
-                        cmd = self.kubectl_cmd + ['get', res]
+                        cmd = shlex.split(
+                            "{} get {}".format(self.kubectl_cmd, res))
                         print subprocess.check_output(cmd)
                         resource_exists = True
                 if not resource_exists:
@@ -154,9 +156,8 @@ class Ausroller(object):
 
             if not resource_exists:
                 # No resource for app_name found. Start it.
-                cmd = self.kubectl_cmd + ['create', '-f', self.rollout_path +
-                                          '%ss/%s-%s.yaml' %
-                                          (resource, self.app_name, resource)]
+                cmd = shlex.split("{} create -f {}".format(self.kubectl_cmd, os.path.join(
+                    self.rollout_path, "{}s".format(resource), "{}-{}.yaml".format(self.app_name, resource))))
                 try:
                     create_out = subprocess.check_output(cmd)
                     print "Created %s for \"%s\"" % (resource, self.app_name)
@@ -164,11 +165,9 @@ class Ausroller(object):
                     print "Creating %s failed:" % resource
                     raise
             else:
-                # resource for app_name existing. Let's update!
-                cmd = self.kubectl_cmd + ['apply', '-f', self.rollout_path +
-                                          '%ss/%s-%s.yaml' % (resource,
-                                                              self.app_name,
-                                                              resource)]
+                # resource for app_name exists. Let's update!
+                cmd = shlex.split("{} apply -f {}".format(self.kubectl_cmd, os.path.join(
+                    self.rollout_path, "{}s".format(resource), "{}-{}.yaml".format(self.app_name, resource))))
                 try:
                     update_out = subprocess.check_output(cmd)
                 except:
