@@ -125,7 +125,12 @@ class Ausroller(object):
     def commit_rollout(self, files_to_commit):
         repo = repository.GitRepository(self.repopath)
         (repo_is_clean, repo_msg) = repo.is_clean()
+
         if not repo_is_clean:
+            if self.is_dryrun:
+                print("Dry run: skipping commit")
+                return
+
             repo.commit_files(files_to_commit,
                               "Created rollout for {} with version {}\n\n{}".format(
                                   self.app_name,
@@ -156,6 +161,13 @@ class Ausroller(object):
             except subprocess.CalledProcessError as e:
                 print("Something went wrong while calling kubectl.\n{}".format(e))
                 sys.exit(1)
+
+            if self.is_dryrun:
+                if resource_exists:
+                    print("Dry run: Skipping apply")
+                else:
+                    print("Dry run: Skipping create")
+                return
 
             if not resource_exists:
                 # No resource for app_name found. Start it.
