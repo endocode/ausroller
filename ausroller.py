@@ -16,14 +16,15 @@ class Ausroller(object):
     def __init__(self):
         # read cli parameters
         self.parse_args()
+        home_dir = os.path.expanduser("~")
         # read config file
         if not self.configfile:
-            self.configfile = os.environ['HOME'] + "/.ausroller.ini"
+            self.configfile = os.path.join(home_dir, ".ausroller.ini")
         self.read_config()
         # set paths and read in the json file with the secrets
-        self.templates_path = self.repopath + '/templates/'
-        self.rollout_path = self.repopath + '/rollout/'
-        self.variablesfile = os.environ['HOME'] + "/.ausroller_secrets.json"
+        self.templates_path = os.path.join(self.repopath, 'templates')
+        self.rollout_path = os.path.join(self.repopath, 'rollout')
+        self.variablesfile = os.path.join(home_dir, ".ausroller_secrets.json")
         self.read_variables()
         self.kubectl_cmd = ['kubectl',
                             '--namespace=%s' % self.tenant]
@@ -82,7 +83,7 @@ class Ausroller(object):
             app_name and resource type
         '''
         env = Environment(
-            loader=FileSystemLoader(self.templates_path + resource + 's'))
+            loader=FileSystemLoader(os.path.join(self.templates_path, resource + 's')))
         try:
             template = env.get_template(self.app_name + '-' +
                                         resource + '.tpl.yaml')
@@ -106,8 +107,8 @@ class Ausroller(object):
 
         files_to_commit = []
         for resource in resources.keys():
-            outfile = self.rollout_path + resource + \
-                's/' + self.app_name + '-' + resource + '.yaml'
+            outfile = os.path.join(self.rollout_path, "{}s".format(
+                resource), "{}-{}.yaml".format(self.app_name, resource))
             with open(outfile, 'w') as out:
                 out.write(resources[resource])
                 # flush & sync to avoid git adding an empty file
