@@ -34,8 +34,10 @@ class Ausroller(object):
         # set paths and read in the json file with the secrets
         self.templates_path = os.path.join(self.repopath, 'templates')
         self.rollout_path = os.path.join(self.repopath, 'rollout', self.namespace)
-        self.variablesfile = os.path.join(self.repopath, 'secrets', self.namespace, 'secret_vars.json')
-        self.variables = self.read_variables(self.variablesfile)
+        if not self.secretsfile:
+            self.secretsfile = os.path.join(
+                self.repopath, 'secrets', self.namespace, 'secret_vars.json')
+        self.variables = self.read_variables(self.secretsfile)
         self.extra_variables = {}
         if self.extravarsfile:
             self.extra_variables = self.read_variables(self.extravarsfile)
@@ -58,6 +60,8 @@ class Ausroller(object):
                             help='Which namespace to rollout on')
         parser.add_argument('-e', '--extravars', type=str, required=False,
                             help='Path to file holding extra variables')
+        parser.add_argument('-s', '--secret', type=str, required=False,
+                            help='Path to file holding [<repopath>/secrets/<namespace>/secret_vars.json]')
         args = parser.parse_args()
 
         self.app_name = args.app
@@ -67,6 +71,7 @@ class Ausroller(object):
         self.is_dryrun = args.dryrun
         self.configfile = args.config
         self.extravarsfile = args.extravars
+        self.secretsfile = args.secret
 
     def read_config(self):
         cp = ConfigParser.ConfigParser()
