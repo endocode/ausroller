@@ -33,10 +33,10 @@ class Ausroller(object):
         self.read_config()
         # set paths and read in the json file with the secrets
         self.templates_path = os.path.join(self.repopath, 'templates')
-        self.rollout_path = os.path.join(self.repopath, 'rollout', self.tenant)
+        self.rollout_path = os.path.join(self.repopath, 'rollout', self.namespace)
         self.variablesfile = os.path.join(home_dir, ".ausroller_secrets.json")
         self.read_variables()
-        self.kubectl_cmd = 'kubectl --namespace={}'.format(self.tenant)
+        self.kubectl_cmd = 'kubectl --namespace={}'.format(self.namespace)
 
     def parse_args(self):
         parser = argparse.ArgumentParser()
@@ -51,13 +51,13 @@ class Ausroller(object):
                             help='Path to config file [$HOME/.ausroller.ini]')
         parser.add_argument('-d', '--dryrun', action='store_true',
                             help='Don\'t do anything just print')
-        parser.add_argument('-t', '--tenant', type=str, required=True,
-                            help='Which tenant to rollout on')
+        parser.add_argument('-n', '--namespace', type=str, required=True,
+                            help='Which namespace to rollout on')
         args = parser.parse_args()
 
         self.app_name = args.app
         self.app_version = args.version
-        self.tenant = args.tenant
+        self.namespace = args.namespace
         self.commit_message = args.message
         self.is_dryrun = args.dryrun
         self.configfile = args.config
@@ -100,7 +100,7 @@ class Ausroller(object):
         except exceptions.TemplateNotFound as e:
             logging.debug("Template \"{}\" not found.".format(e))
             return
-        return template.render(self.variables, app_version=self.app_version, namespace=self.tenant)
+        return template.render(self.variables, app_version=self.app_version, namespace=self.namespace)
 
     def prepare_rollout(self):
         logging.info("Preparing rollout of {} in version {}".format(
