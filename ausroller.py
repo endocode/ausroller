@@ -98,7 +98,7 @@ class Ausroller(object):
         except exceptions.TemplateNotFound as e:
             logging.debug("Template \"{}\" not found.".format(e))
             return
-        return template.render(self.variables, app_version=self.app_version)
+        return template.render(self.variables, app_version=self.app_version, namespace=self.tenant)
 
     def prepare_rollout(self):
         logging.info("Preparing rollout of {} in version {}".format(
