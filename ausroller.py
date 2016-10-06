@@ -10,6 +10,7 @@ import ConfigParser
 import os
 import json
 import shlex
+import logging
 
 
 RESOURCES = ["configmap", "deployment", "service"]
@@ -19,6 +20,10 @@ class Ausroller(object):
     def __init__(self):
         # read cli parameters
         self.parse_args()
+
+        # make log level configurable
+        logging.basicConfig(format='%(levelname)s:\t%(message)s', level=logging.DEBUG)
+
         home_dir = os.path.expanduser("~")
         # read config file
         if not self.configfile:
@@ -60,13 +65,14 @@ class Ausroller(object):
         try:
             cp.read(self.configfile)
         except:
-            print("Cannot read configuration file \"{}\"!".format(self.configfile))
+            logging.error(
+                "Cannot read configuration file \"{}\"!".format(self.configfile))
             sys.exit(1)
 
         try:
             self.repopath = cp.get('ausroller', 'repopath')
         except:
-            print("Cannot read 'repopath' from configuration file \"{}\"!".format(
+            logging.error("Cannot read 'repopath' from configuration file \"{}\"!".format(
                 self.configfile))
             sys.exit(1)
 
@@ -77,7 +83,7 @@ class Ausroller(object):
             with open(self.variablesfile) as f:
                 self.variables = json.load(f)
         except:
-            print("Cannot read variables from \"{}\"!".format(self.variablesfile))
+            logging.error("Cannot read variables from \"{}\"!".format(self.variablesfile))
             sys.exit(1)
 
     def render_template(self, resource):
@@ -90,12 +96,12 @@ class Ausroller(object):
             template = env.get_template(
                 "{}-{}.tpl.yaml".format(self.app_name, resource))
         except exceptions.TemplateNotFound as e:
-            print("Template \"{}\" not found.".format(e))
+            logging.error("Template \"{}\" not found.".format(e))
             sys.exit(1)
         return template.render(self.variables, app_version=self.app_version)
 
     def prepare_rollout(self):
-        print("Preparing rollout of {} in version {}".format(
+        logging.info("Preparing rollout of {} in version {}".format(
             self.app_name, self.app_version))
         result_map = {}
         for resource in RESOURCES:
@@ -106,7 +112,7 @@ class Ausroller(object):
         repo = repository.GitRepository(self.repopath)
         (repo_is_clean, repo_msg) = repo.is_clean()
         if not repo_is_clean:
-            print("Git repo is not in a clean state! Exiting..")
+            logging.error("Git repo is not in a clean state! Exiting..")
             sys.exit(1)
 
         files_to_commit = []
@@ -128,7 +134,7 @@ class Ausroller(object):
 
         if not repo_is_clean:
             if self.is_dryrun:
-                print("Dry run: skipping commit")
+                logging.debug("Dry run: skipping commit")
                 return
 
             repo.commit_files(files_to_commit,
@@ -136,9 +142,10 @@ class Ausroller(object):
                                   self.app_name,
                                    self.app_version,
                                    self.commit_message))
-            print(repo.show(self.rollout_path))
+            logging.info(repo.show(self.rollout_path))
         else:
-            print("Definition of rollout already exists. Nothing changed.")
+            logging.warn(
+                "Definition of rollout already exists. Nothing changed.")
 
     def rollout(self):
         for resource in RESOURCES:
@@ -150,23 +157,23 @@ class Ausroller(object):
                 for res in out.split('\n'):
                     if res.startswith(resource + '/%s-%s' %
                                       (self.app_name, resource)):
-                        print("Found: {}".format(res))
+                        logging.debug("Found: {}".format(res))
                         cmd = shlex.split(
                             "{} get {}".format(self.kubectl_cmd, res))
-                        print(subprocess.check_output(cmd))
+                        logging.debug(subprocess.check_output(cmd))
                         resource_exists = True
                 if not resource_exists:
-                    print("No {} of \"{}\" found.".format(
+                    logging.warn("No {} of \"{}\" found.".format(
                         resource, self.app_name))
             except subprocess.CalledProcessError as e:
-                print("Something went wrong while calling kubectl.\n{}".format(e))
+                logging.error("Something went wrong while calling kubectl.\n{}".format(e))
                 sys.exit(1)
 
             if self.is_dryrun:
                 if resource_exists:
-                    print("Dry run: Skipping apply")
+                    logging.info("Dry run: Skipping apply")
                 else:
-                    print("Dry run: Skipping create")
+                    logging.info("Dry run: Skipping create")
                 return
 
             if not resource_exists:
@@ -175,10 +182,10 @@ class Ausroller(object):
                     self.rollout_path, "{}s".format(resource), "{}-{}.yaml".format(self.app_name, resource))))
                 try:
                     create_out = subprocess.check_output(cmd)
-                    print("Created {} for \"{}\"".format(
+                    logging.info("Created {} for \"{}\"".format(
                         resource, self.app_name))
                 except:
-                    print("Creating {} failed:".format(resource))
+                    logging.info("Creating {} failed:".format(resource))
                     raise
             else:
                 # resource for app_name exists. Let's update!
@@ -187,7 +194,7 @@ class Ausroller(object):
                 try:
                     update_out = subprocess.check_output(cmd)
                 except:
-                    print("Applying the {} failed:".format(resource))
+                    logging.error("Applying the {} failed:".format(resource))
                     raise
 
 
@@ -196,7 +203,7 @@ def main():
     a.prepare_rollout()
     a.rollout()
 
-    print(a.__dict__)
+    logging.debug(a.__dict__)
 
 if __name__ == '__main__':
     main()
