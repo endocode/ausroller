@@ -37,7 +37,8 @@ class Ausroller(object):
         self.read_config()
         # set paths and read in the json file with the secrets
         self.templates_path = os.path.join(self.repopath, 'templates')
-        self.rollout_path = os.path.join(self.repopath, 'rollout', self.namespace)
+        self.rollout_path = os.path.join(
+            self.repopath, 'rollout', self.namespace)
         if not self.secretsfile:
             self.secretsfile = os.path.join(
                 self.repopath, 'secrets', self.namespace, 'secret_vars.json')
@@ -183,8 +184,8 @@ class Ausroller(object):
             repo.commit_files(files_to_commit,
                               "Created rollout for {} with version {}\n\n{}".format(
                                   self.app_name,
-                                   self.app_version,
-                                   self.commit_message))
+                                  self.app_version,
+                                  self.commit_message))
             logging.info(repo.show(self.rollout_path))
         else:
             logging.warn(
