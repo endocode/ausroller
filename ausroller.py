@@ -35,7 +35,10 @@ class Ausroller(object):
         self.templates_path = os.path.join(self.repopath, 'templates')
         self.rollout_path = os.path.join(self.repopath, 'rollout', self.namespace)
         self.variablesfile = os.path.join(self.repopath, 'secrets', self.namespace, 'secret_vars.json')
-        self.read_variables()
+        self.variables = self.read_variables(self.variablesfile)
+        self.extra_variables = {}
+        if self.extravarsfile:
+            self.extra_variables = self.read_variables(self.extravarsfile)
         self.kubectl_cmd = 'kubectl --namespace={}'.format(self.namespace)
 
     def parse_args(self):
@@ -53,6 +56,8 @@ class Ausroller(object):
                             help='Don\'t do anything just print')
         parser.add_argument('-n', '--namespace', type=str, required=True,
                             help='Which namespace to rollout on')
+        parser.add_argument('-e', '--extravars', type=str, required=False,
+                            help='Path to file holding extra variables')
         args = parser.parse_args()
 
         self.app_name = args.app
@@ -61,6 +66,7 @@ class Ausroller(object):
         self.commit_message = args.message
         self.is_dryrun = args.dryrun
         self.configfile = args.config
+        self.extravarsfile = args.extravars
 
     def read_config(self):
         cp = ConfigParser.ConfigParser()
@@ -78,15 +84,17 @@ class Ausroller(object):
                 self.configfile))
             sys.exit(1)
 
-    def read_variables(self):
-        self.variables = {}
-
+    def read_variables(self, varfile):
+        variables = {}
+        logging.debug("Reading vars from {}".format(varfile))
         try:
-            with open(self.variablesfile) as f:
-                self.variables = json.load(f)
+            with open(varfile) as f:
+                variables = json.load(f)
         except:
-            logging.error("Cannot read variables from \"{}\"!".format(self.variablesfile))
+            logging.error("Cannot read variables from \"{}\"!".format(varfile))
             sys.exit(1)
+
+        return variables
 
     def render_template(self, resource):
         '''
@@ -100,7 +108,7 @@ class Ausroller(object):
         except exceptions.TemplateNotFound as e:
             logging.debug("Template \"{}\" not found.".format(e))
             return
-        return template.render(self.variables, app_version=self.app_version, namespace=self.namespace)
+        return template.render(self.variables, app_version=self.app_version, namespace=self.namespace, **self.extra_variables)
 
     def prepare_rollout(self):
         logging.info("Preparing rollout of {} in version {}".format(
