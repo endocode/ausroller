@@ -34,7 +34,7 @@ class Ausroller(object):
         # set paths and read in the json file with the secrets
         self.templates_path = os.path.join(self.repopath, 'templates')
         self.rollout_path = os.path.join(self.repopath, 'rollout', self.namespace)
-        self.variablesfile = os.path.join(home_dir, ".ausroller_secrets.json")
+        self.variablesfile = os.path.join(self.repopath, 'secrets', self.namespace, 'secret_vars.json')
         self.read_variables()
         self.kubectl_cmd = 'kubectl --namespace={}'.format(self.namespace)
 
