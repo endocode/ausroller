@@ -119,8 +119,17 @@ class Ausroller(object):
 
         files_to_commit = []
         for resource in resources.keys():
-            outfile = os.path.join(self.rollout_path, "{}s".format(
-                resource), "{}-{}.yaml".format(self.app_name, resource))
+            # make sure path exists
+            outdir = os.path.join(self.rollout_path, "{}s".format(resource))
+            if not os.path.exists(outdir):
+                try:
+                    os.makedirs(outdir)
+                except OSError:
+                    # this is still not completely safe as we could run into a (next) race-condition, but it is suitable for out needs
+                    if not os.path.exists(outdir):
+                        logging.error("Can not create rollout directory for resource \"{}\"".format(resource))
+
+            outfile = os.path.join(outdir, "{}-{}.yaml".format(self.app_name, resource))
             with open(outfile, 'w') as out:
                 out.write(resources[resource])
                 # flush & sync to avoid git adding an empty file
