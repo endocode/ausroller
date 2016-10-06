@@ -96,8 +96,8 @@ class Ausroller(object):
             template = env.get_template(
                 "{}-{}.tpl.yaml".format(self.app_name, resource))
         except exceptions.TemplateNotFound as e:
-            logging.error("Template \"{}\" not found.".format(e))
-            sys.exit(1)
+            logging.debug("Template \"{}\" not found.".format(e))
+            return
         return template.render(self.variables, app_version=self.app_version)
 
     def prepare_rollout(self):
@@ -105,7 +105,9 @@ class Ausroller(object):
             self.app_name, self.app_version))
         result_map = {}
         for resource in RESOURCES:
-            result_map[resource] = self.render_template(resource)
+            rendered_template = self.render_template(resource)
+            if rendered_template:
+                result_map[resource] = self.render_template(resource)
         self.write_yamls(result_map)
 
     def write_yamls(self, resources):
