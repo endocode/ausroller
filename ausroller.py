@@ -13,7 +13,9 @@ import shlex
 import logging
 
 
-RESOURCES = ["configmap", "deployment", "service"]
+RESOURCES = ["configmap", "deployment",
+             "service", "pod", "replicationcontroller"]
+
 
 class Ausroller(object):
 
