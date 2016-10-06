@@ -24,7 +24,11 @@ class Ausroller(object):
         self.parse_args()
 
         # make log level configurable
-        logging.basicConfig(format='%(levelname)s:\t%(message)s', level=logging.DEBUG)
+        log_level = logging.INFO
+        if self.is_verbose:
+            log_level = logging.DEBUG
+        logging.basicConfig(
+            format='%(levelname)s:\t%(message)s', level=log_level)
 
         home_dir = os.path.expanduser("~")
         # read config file
@@ -56,6 +60,8 @@ class Ausroller(object):
                             help='Path to config file [$HOME/.ausroller.ini]')
         parser.add_argument('-d', '--dryrun', action='store_true',
                             help='Don\'t do anything just print')
+        parser.add_argument('-V', '--verbose', action='store_true',
+                            help='Be verbose; print debug messages')
         parser.add_argument('-n', '--namespace', type=str, required=True,
                             help='Which namespace to rollout on')
         parser.add_argument('-e', '--extravars', type=str, required=False,
@@ -69,6 +75,7 @@ class Ausroller(object):
         self.namespace = args.namespace
         self.commit_message = args.message
         self.is_dryrun = args.dryrun
+        self.is_verbose = args.verbose
         self.configfile = args.config
         self.extravarsfile = args.extravars
         self.secretsfile = args.secret
