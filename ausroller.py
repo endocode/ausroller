@@ -132,27 +132,36 @@ class Ausroller(object):
             logging.error("Git repo is not in a clean state! Exiting..")
             sys.exit(1)
 
-        files_to_commit = []
-        for resource in resources.keys():
-            # make sure path exists
-            outdir = os.path.join(self.rollout_path, "{}s".format(resource))
-            if not os.path.exists(outdir):
-                try:
-                    os.makedirs(outdir)
-                except OSError:
-                    # this is still not completely safe as we could run into a (next) race-condition, but it is suitable for out needs
-                    if not os.path.exists(outdir):
-                        logging.error("Can not create rollout directory for resource \"{}\"".format(resource))
+        if not self.is_dryrun:
+            files_to_commit = []
+            for resource in resources.keys():
+                # make sure path exists
+                outdir = os.path.join(
+                    self.rollout_path, "{}s".format(resource))
+                if not os.path.exists(outdir):
+                    try:
+                        os.makedirs(outdir)
+                    except OSError:
+                        # this is still not completely safe as we could run
+                        # into a (next) race-condition, but it is suitable for
+                        # out needs
+                        if not os.path.exists(outdir):
+                            logging.error(
+                                "Can not create rollout directory for resource \"{}\"".format(resource))
 
-            outfile = os.path.join(outdir, "{}-{}.yaml".format(self.app_name, resource))
-            with open(outfile, 'w') as out:
-                out.write(resources[resource])
-                # flush & sync to avoid git adding an empty file
-                out.flush()
-                os.fsync(out)
-                repo.add_files(outfile)
-                files_to_commit.append(outfile)
-        self.commit_rollout(files_to_commit)
+                outfile = os.path.join(
+                    outdir, "{}-{}.yaml".format(self.app_name, resource))
+                with open(outfile, 'w') as out:
+                    out.write(resources[resource])
+                    # flush & sync to avoid git adding an empty file
+                    out.flush()
+                    os.fsync(out)
+                    repo.add_files(outfile)
+                    files_to_commit.append(outfile)
+            self.commit_rollout(files_to_commit)
+        else:
+            logging.info(
+                "Dry-run: skip writing files for {}".format(resources.keys()))
         return resources.keys()
 
     def commit_rollout(self, files_to_commit):
