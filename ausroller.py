@@ -162,53 +162,17 @@ class Ausroller(object):
     def rollout(self, resources):
         logging.info("Rolling out resources {}".format(resources))
         for resource in resources:
-            try:
-                cmd = shlex.split(
-                    "{} get {} -oname".format(self.kubectl_cmd, resource + "s"))
-                out = subprocess.check_output(cmd)
-                resource_exists = False
-                for res in out.split('\n'):
-                    if res.startswith(resource + '/%s-%s' %
-                                      (self.app_name, resource)):
-                        logging.debug("Found: {}".format(res))
-                        cmd = shlex.split(
-                            "{} get {}".format(self.kubectl_cmd, res))
-                        logging.debug(subprocess.check_output(cmd))
-                        resource_exists = True
-                if not resource_exists:
-                    logging.warn("No {} of \"{}\" found.".format(
-                        resource, self.app_name))
-            except subprocess.CalledProcessError as e:
-                logging.error("Something went wrong while calling kubectl.\n{}".format(e))
-                sys.exit(1)
-
             if self.is_dryrun:
-                if resource_exists:
-                    logging.info("Dry run: Skipping apply")
-                else:
-                    logging.info("Dry run: Skipping create")
+                logging.info("Dry-run: skip applying changes to Kubernetes")
                 return
 
-            if not resource_exists:
-                # No resource for app_name found. Start it.
-                cmd = shlex.split("{} create -f {}".format(self.kubectl_cmd, os.path.join(
-                    self.rollout_path, "{}s".format(resource), "{}-{}.yaml".format(self.app_name, resource))))
-                try:
-                    create_out = subprocess.check_output(cmd)
-                    logging.info("Created {} for \"{}\"".format(
-                        resource, self.app_name))
-                except:
-                    logging.info("Creating {} failed:".format(resource))
-                    raise
-            else:
-                # resource for app_name exists. Let's update!
-                cmd = shlex.split("{} apply -f {}".format(self.kubectl_cmd, os.path.join(
-                    self.rollout_path, "{}s".format(resource), "{}-{}.yaml".format(self.app_name, resource))))
-                try:
-                    update_out = subprocess.check_output(cmd)
-                except:
-                    logging.error("Applying the {} failed:".format(resource))
-                    raise
+            cmd = shlex.split("{} apply -f {}".format(self.kubectl_cmd, os.path.join(
+                self.rollout_path, "{}s".format(resource), "{}-{}.yaml".format(self.app_name, resource))))
+            try:
+                update_out = subprocess.check_output(cmd)
+            except:
+                logging.error("Applying the {} failed:".format(resource))
+                sys.exit(1)
 
 
 def main():
