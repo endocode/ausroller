@@ -108,7 +108,7 @@ class Ausroller(object):
             rendered_template = self.render_template(resource)
             if rendered_template:
                 result_map[resource] = self.render_template(resource)
-        self.write_yamls(result_map)
+        return self.write_yamls(result_map)
 
     def write_yamls(self, resources):
         repo = repository.GitRepository(self.repopath)
@@ -129,6 +129,7 @@ class Ausroller(object):
                 repo.add_files(outfile)
                 files_to_commit.append(outfile)
         self.commit_rollout(files_to_commit)
+        return resources.keys()
 
     def commit_rollout(self, files_to_commit):
         repo = repository.GitRepository(self.repopath)
@@ -149,8 +150,9 @@ class Ausroller(object):
             logging.warn(
                 "Definition of rollout already exists. Nothing changed.")
 
-    def rollout(self):
-        for resource in RESOURCES:
+    def rollout(self, resources):
+        logging.info("Rolling out resources {}".format(resources))
+        for resource in resources:
             try:
                 cmd = shlex.split(
                     "{} get {} -oname".format(self.kubectl_cmd, resource + "s"))
@@ -202,8 +204,8 @@ class Ausroller(object):
 
 def main():
     a = Ausroller()
-    a.prepare_rollout()
-    a.rollout()
+    resources = a.prepare_rollout()
+    a.rollout(resources)
 
     logging.debug(a.__dict__)
 
