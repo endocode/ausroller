@@ -61,6 +61,8 @@ class Ausroller(object):
                             help='Path to config file [$HOME/.ausroller.ini]')
         parser.add_argument('-d', '--dryrun', action='store_true',
                             help='Don\'t do anything just print')
+        parser.add_argument('-D', '--dryruntemp', action='store_true',
+                            help='Don\'t do apply but produce git commits')
         parser.add_argument('-V', '--verbose', action='store_true',
                             help='Be verbose; print debug messages')
         parser.add_argument('-n', '--namespace', type=str, required=True,
@@ -76,6 +78,9 @@ class Ausroller(object):
         self.namespace = args.namespace
         self.commit_message = args.message
         self.is_dryrun = args.dryrun
+        self.is_dryrun_but_templates = args.dryruntemp
+        if self.is_dryrun and self.is_dryrun_but_templates:
+            logging.warn("Multiple dryrun options specified using complete dry-run (-d)")
         self.is_verbose = args.verbose
         self.configfile = args.config
         self.extravarsfile = args.extravars
@@ -177,7 +182,7 @@ class Ausroller(object):
         (repo_is_clean, repo_msg) = repo.is_clean()
 
         if not repo_is_clean:
-            if self.is_dryrun:
+            if self.is_dryrun or self.is_dryrun_but_templates:
                 logging.debug("Dry run: skipping commit")
                 return
 
@@ -194,7 +199,7 @@ class Ausroller(object):
     def rollout(self, resources):
         logging.info("Rolling out resources {}".format(resources))
         for resource in resources:
-            if self.is_dryrun:
+            if self.is_dryrun or self.is_dryrun_but_templates:
                 logging.info("Dry-run: skip applying changes to Kubernetes")
                 return
 
