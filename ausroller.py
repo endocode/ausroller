@@ -13,7 +13,7 @@ import shlex
 import logging
 
 
-RESOURCES = ["configmap", "deployment",
+RESOURCES = ["configmap", "deployment", "secrets",
              "service", "pod", "replicationcontroller"]
 
 
