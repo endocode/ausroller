@@ -43,7 +43,15 @@ class Ausroller(object):
             self.secretsfile = os.path.join(
                 self.repopath, 'secrets', self.namespace, 'secret_vars.json')
         self.variables = self.read_variables(self.secretsfile)
+
         self.extra_variables = {}
+        if not self.extravarsfile:
+            default_extravarsfile = os.path.join(
+                self.repopath, 'manifests', self.namespace, 'extra_vars.json')
+            if os.path.exists(default_extravarsfile):
+                logging.info("found default extra vars file")
+                self.extravarsfile = default_extravarsfile
+
         if self.extravarsfile:
             self.extra_variables = self.read_variables(self.extravarsfile)
         self.kubectl_cmd = 'kubectl --namespace={}'.format(self.namespace)
@@ -83,7 +91,9 @@ class Ausroller(object):
             logging.warn("Multiple dryrun options specified using complete dry-run (-d)")
         self.is_verbose = args.verbose
         self.configfile = args.config
+
         self.extravarsfile = args.extravars
+
         self.secretsfile = args.secret
 
     def read_config(self):
