@@ -1,21 +1,53 @@
 ## Intro
 
-Ausroller is a tool create, update and rollout deployment.yamls from a template.
+Ausroller is a tool create, update and rollout Kubernetes resource yamls from a template.
 
 Our central configuration repository ``k8s-resources`` contains the
-directories ``templates`` and ``rollout``.
+directories ``templates``, ``rollout``, ``namespaces`` and ``secrets``.
 
 ```
+.
+├── namespaces
+│   └── another-namespace.yaml
 ├── rollout
-│   └── deployments
-│       └── did-microservice-deployment.yaml
+│   ├── default
+│   │   ├── configmaps
+│   │   ├── deployments
+│   │   ├── pods
+│   │   ├── replicationcontrollers
+│   │   ├── secrets
+│   │   └── services
+│   ├── kube-system
+│   │   ├── deployments
+│   │   ├── replicationcontrollers
+│   │   ├── secrets
+│   │   └── services
+│   └── another-namespace
+│       ├── configmaps
+│       ├── deployments
+│       ├── pods
+│       ├── replicationcontrollers
+│       ├── secrets
+│       └── services
+├── secrets
+│   ├── default
+│   │   └── secret_vars.json
+│   ├── kube-system
+│   │   └── secret_vars.json
+│   └── another-namespace
+│       └── secret_vars.json
 └── templates
-    └── deployments
-        └── did-microservice-deployment.tpl.yaml
+    ├── configmaps
+    ├── deployments
+    ├── pods
+    ├── replicationcontrollers
+    └── services
 ```
 `templates` contains the deployment templates (Do'h!) and `rollout` contains the
- latest deployments.yamls which are already rolled out. __This is the place
- where we store the productive version numbers of all our components.__
+ latest Kubernetes resource yamls which are already rolled out in a specific
+namespace. Additional namespaces have to be deployed once and are in the
+`namespace` directory. __This is the place where we store the productive
+version numbers of all our components.__
 
 
 
@@ -26,7 +58,7 @@ Install dependencies:
 sudo apt-get install git-buildpackage python-jinja2
 ```
 
-Or if you stuck on MacOS:
+or if you stuck on MacOS:
 ```
 git clone git://honk.sigxcpu.org/git/git-buildpackage.git
 cd git-buildpackage.git
@@ -62,22 +94,26 @@ by running ```kubectl config view```.
 If everything prepared you can run the ausroller.py with the two mandatory parameters:
 
 ```
-ausroller.py --app your-app --version 47.11-1a
+ausroller.py --namespace another-namespace --app your-app --version 47.11-1a
 ```
 
-This command looks up for a deployment template file called
-```your-app-deplyoment.tpl.yaml``` in the directory ```templates/deployments/```
-in your configured repo-path. It will fill in the version given by the command
-line parameter ```--version```, add and commit the created deployment file in
-the path ```rollout/deployments/your-app-deplyoment.yaml```. Then it checks if
-the deployment already exists and updates it by running  and roll out the saved
-file by running ```kubectl apply -f your-app-deplyoment.yaml```. If the
-deployment is unknown to Kubernetes ausroller.py creates a new deployment by
-running ```kubectl create -f your-app-deplyoment.yaml```.
+This command looks up for Kubernetes resource template files e.g. called
+```your-app-deplyoment.tpl.yaml``` or ```your-app-configmap.tpl.yaml``` in the
+directory ```templates/another-namespace/deplyoments/``` resp.
+```templates/another-namespace/configmaps/``` in your configured repo-path. It
+will fill in the version given by the command line parameter ```--version```,
+add and commit the created Kubernetes resource files in the path
+```rollout/another-namespace/deployments/your-app-deplyoment.yaml``` resp.
+```rollout/another-namespace/configmaps/your-app-configmap.yaml```. Then it
+checks if the Kubernetes resources already exist and updates it by running and
+roll out the saved file by running ```kubectl apply -f
+your-app-configmap.yaml``` resp. ```kubectl apply -f
+your-app-deplyoment.yaml```. If a Kubernetes resource is unknown ausroller.py
+creates it.
 
 If you want more explanatory commit messages in the repository you can run ausroller.py with the optional parameter ```--message``` :
 ```
-ausroller.py --app my-app ---version 1.2.3-12a --message "Hotfix for foobar"
+ausroller.py --namespace another-namespace --app my-app ---version 1.2.3-12a --message "Hotfix for foobar"
 ```
 
 
@@ -90,7 +126,7 @@ filename  `<your-app>-deployment.tpl.yaml`
 
 Now run `ausroller.py` like that
 ```
-ausroller.py --app your-app --version 47.11-1a --message "First rollout"
+ausroller.py --namespace another-namespace --app your-app --version 47.11-1a --message "First rollout"
 ```
 
-Ausroller will take the template you create (choosen by the value of parameter `--app`), replace the `{{ app_version}}` placeholder by the value of the parameter `--version`, add and commit the resulting file `your-app-deplyoment.yaml` to the directory `rollout/deployments/` and create the deployment in the Kubernetes cluster.
+Ausroller will take the template you create (choosen by the value of parameter `--app`), replace the `{{ app_version}}` placeholder by the value of the parameter `--version`, add and commit the resulting file `your-app-deplyoment.yaml` to the directory `rollout/another-namespace/deployments/` and create the deployment in the Kubernetes cluster.
