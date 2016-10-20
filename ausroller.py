@@ -106,7 +106,7 @@ class Ausroller(object):
             sys.exit(1)
 
         try:
-            self.repopath = cp.get('ausroller', 'repopath')
+            self.repopath = os.path.realpath(cp.get('ausroller', 'repopath'))
         except:
             logging.error("Cannot read 'repopath' from configuration file \"{}\"!".format(
                 self.configfile))
