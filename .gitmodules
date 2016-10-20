@@ -1,0 +1,3 @@
+[submodule "example-resources"]
+	path = example-resources
+	url = git@github.com:endocode/ausroller-example-resources.git
