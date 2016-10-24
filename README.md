@@ -1,3 +1,10 @@
+## Note
+
+Clone this repository with `--recursive` to get the submodule example folder:
+```
+git clone --recursive https://github.com/endocode/ausroller
+```
+
 ## Intro
 
 Ausroller is a tool create, update and rollout Kubernetes resource yamls from a template.
