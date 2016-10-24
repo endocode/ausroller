@@ -130,3 +130,66 @@ ausroller.py --namespace another-namespace --app your-app --version 47.11-1a --m
 ```
 
 Ausroller will take the template you create (choosen by the value of parameter `--app`), replace the `{{ app_version}}` placeholder by the value of the parameter `--version`, add and commit the resulting file `your-app-deplyoment.yaml` to the directory `rollout/another-namespace/deployments/` and create the deployment in the Kubernetes cluster.
+
+## Example
+
+In the following example we use `ausroller` to rollout Nginx in a certain
+version. This will create a deployment and a service from our templates in the
+`example-resources/` folder. It also will produce a commit in that repository
+with the according resource yamls.
+
+After that we will upgrade the Nginx to a newer version.
+
+
+### Prerequisites
+
+* `kubectl` has to be configured to a cluster
+
+### Steps
+
+Make sure that we have the namespace we want to rollout to:
+```
+kubectl apply -f example-resources/namespaces/another-namespace.yaml
+```
+
+Rollout Nginx. This will produce a commit in `example-resources/`:
+```
+./ausroller.py --config example-resources/ausroller.ini --namespace another-namespace --app nginx --version 1.10.2-alpine
+```
+
+Check what happened:
+```
+kubectl --namespace=another-namespace get svc,deployment,pods
+```
+
+Upgrade Nginx:
+
+```
+./ausroller.py --config example-resources/ausroller.ini --namespace another-namespace --app nginx --version 1.11.5-alpine
+```
+
+Again check what happened:
+```
+kubectl --namespace=another-namespace get svc,deployment,pods
+```
+
+### Cleanup
+
+Delete Kubernetes resources:
+
+```
+kubectl --namespace=another-namespace delete svc nginx-service
+```
+
+```
+kubectl --namespace=another-namespace delete deployment nginx-deployment
+```
+
+```
+kubectl delete namespace another-namespace
+```
+
+Remove the commits produced by `ausroller`:
+```
+( cd example-resources/ && git reset --hard HEAD~2 )
+```
