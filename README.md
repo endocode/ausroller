@@ -200,3 +200,13 @@ Remove the commits produced by `ausroller`:
 ```
 ( cd example-resources/ && git reset --hard HEAD~2 )
 ```
+
+### Development
+
+When implementing new features place some unit tests in the tests directory.
+
+Running the unit tests:
+
+```
+python -m unittest discover -v tests
+```
