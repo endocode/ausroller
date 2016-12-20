@@ -42,7 +42,11 @@ class Ausroller(object):
         if not self.secretsfile:
             self.secretsfile = os.path.join(
                 self.repopath, 'secrets', self.namespace, 'secret_vars.json')
-        self.variables = self.read_variables(self.secretsfile)
+        try:
+            self.variables = read_variables(self.secretsfile)
+        except KeyError as e:
+            logging.error("Cannot read secret variables from \"{}\"! [{}]".format(self.secretsfile, e))
+            sys.exit(1)
 
         self.extra_variables = {}
         if not self.extravarsfile:
@@ -53,7 +57,11 @@ class Ausroller(object):
                 self.extravarsfile = default_extravarsfile
 
         if self.extravarsfile:
-            self.extra_variables = self.read_variables(self.extravarsfile)
+            try:
+                self.extra_variables = read_variables(self.extravarsfile)
+            except KeyError as e:
+                logging.error("Cannot read extra variables from \"{}\"! [{}]".format(self.extravarsfile, e))
+                sys.exit(1)
         self.kubectl_cmd = 'kubectl --namespace={}'.format(self.namespace)
 
     def parse_args(self):
@@ -111,18 +119,6 @@ class Ausroller(object):
             logging.error("Cannot read 'repopath' from configuration file \"{}\"!".format(
                 self.configfile))
             sys.exit(1)
-
-    def read_variables(self, varfile):
-        variables = {}
-        logging.debug("Reading vars from {}".format(varfile))
-        try:
-            with open(varfile) as f:
-                variables = json.load(f)
-        except:
-            logging.error("Cannot read variables from \"{}\"!".format(varfile))
-            sys.exit(1)
-
-        return variables
 
     def render_template(self, resource):
         '''
@@ -221,6 +217,21 @@ class Ausroller(object):
                 logging.error("Applying the {} failed:".format(resource))
                 sys.exit(1)
 
+def _custom_json_pairs_hook(pairs):
+    result =  dict()
+    for key, value in pairs:
+        if key in result:
+            raise KeyError("Duplicate definition of \"{}\" found.".format(key))
+        else:
+            result[key] = value
+    return result
+
+def read_variables(varfile):
+    variables = {}
+    logging.debug("Reading vars from {}".format(varfile))
+    with open(varfile) as f:
+        variables = json.load(f, object_pairs_hook=_custom_json_pairs_hook)
+    return variables
 
 def main():
     a = Ausroller()
