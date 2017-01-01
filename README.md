@@ -65,11 +65,9 @@ Install dependencies:
 sudo apt-get install git-buildpackage python-jinja2
 ```
 
-or if you stuck on MacOS:
+or if you stuck on MacOS (or a Linux distro not shipping git-buildpackage):
 ```
-git clone git://honk.sigxcpu.org/git/git-buildpackage.git
-cd git-buildpackage.git
-python setup.py install  [ --user ]
+pip install [--user] -r requirements.txt
 ```
 
 Ausroller needs a config file to read the path to the "rollout" git repo from.
