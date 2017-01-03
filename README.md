@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/endocode/ausroller.svg?branch=master)](https://travis-ci.org/endocode/ausroller)
+
 ## Note
 
 Clone this repository with `--recursive` to get the submodule example folder:
