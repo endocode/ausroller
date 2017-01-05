@@ -1,5 +1,5 @@
 import unittest
-from ausroller import read_variables
+from ausroller import Configuration
 from tempfile import NamedTemporaryFile
 
 class ConfigurationTest(unittest.TestCase):
@@ -9,7 +9,7 @@ class ConfigurationTest(unittest.TestCase):
             tempfile.write(config)
             tempfile.flush()
             with self.assertRaises(KeyError):
-                read_variables(tempfile.name)
+                Configuration().read_variables(tempfile.name)
 
 
 if __name__ == '__main__':
