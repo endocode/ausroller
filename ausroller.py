@@ -193,7 +193,8 @@ class Ausroller(object):
                 return
 
             repo.commit_files(files_to_commit,
-                              "Created rollout for {} with version {}\n\n{}".format(
+                              "[{}] Created rollout for {} with version {}\n\n{}".format(
+                                  self.namespace,
                                   self.app_name,
                                   self.app_version,
                                   self.commit_message))
