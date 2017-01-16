@@ -204,14 +204,19 @@ class Ausroller(object):
                 "Definition of rollout already exists. Nothing changed.")
 
     def rollout(self, resources):
-        logging.info("Rolling out resources {}".format(resources))
+        if self.is_dryrun or self.is_dryrun_but_templates:
+            logging.info("Dry-run: skip applying changes to Kubernetes")
+        else:
+            logging.info("Rolling out resources {}".format(resources))
         for resource in resources:
-            if self.is_dryrun or self.is_dryrun_but_templates:
-                logging.info("Dry-run: skip applying changes to Kubernetes")
-                return
-
             cmd = shlex.split("{} apply -f {}".format(self.kubectl_cmd, os.path.join(
                 self.rollout_path, "{}s".format(resource), "{}-{}.yaml".format(self.app_name, resource))))
+            if self.is_dryrun or self.is_dryrun_but_templates:
+                logging.debug("Skipping '{}'".format(" ".join(cmd)))
+                continue
+            else:
+                logging.debug("Running '{}'".format(" ".join(cmd)))
+
             try:
                 update_out = subprocess.check_output(cmd)
             except:
