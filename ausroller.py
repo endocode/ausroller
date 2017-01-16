@@ -198,7 +198,8 @@ class Ausroller(object):
                                   self.app_name,
                                   self.app_version,
                                   self.commit_message))
-            logging.info(repo.show(self.rollout_path))
+            logging.debug("Commited changes:\n{}".format(
+                repo.show(self.rollout_path)))
         else:
             logging.warn(
                 "Definition of rollout already exists. Nothing changed.")
