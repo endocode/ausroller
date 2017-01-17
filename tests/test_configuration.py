@@ -1,5 +1,5 @@
 import unittest
-from ausroller import read_variables
+from config import read_variables
 from tempfile import NamedTemporaryFile
 
 class ConfigurationTest(unittest.TestCase):
