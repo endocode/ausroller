@@ -16,7 +16,8 @@ class CommandlineArgs(object):
             if not value:
                 value = default
         except KeyError:
-            logging.debug("Return default value {} for key {}".format(default, key))
+            logging.debug(
+                "Return default value {} for key {}".format(default, key))
             value = default
 
         return value
@@ -70,7 +71,8 @@ class Configuration(object):
 
     def read_configfile(self, configfile):
         cp = ConfigParser()
-        configuration = [(self.context, 'repopath'), ('ausroller', 'kubectlpath')]
+        configuration = [(self.context, 'repopath'),
+                         ('ausroller', 'kubectlpath')]
         try:
             logging.debug("Reading JSON file {}".format(configfile))
             cp.read(configfile)
@@ -81,9 +83,11 @@ class Configuration(object):
 
         for (section, option) in configuration:
             try:
-                setattr(self, option, os.path.realpath(cp.get(section, option)))
+                setattr(self, option, os.path.realpath(
+                    cp.get(section, option)))
             except NoOptionError:
-                logging.warn("Cannot read option '{}' from section '{}' in configuration file \"{}\"!".format(option, section, configfile))
+                logging.warn("Cannot read option '{}' from section '{}' in configuration file \"{}\"!".format(
+                    option, section, configfile))
                 setattr(self, option, None)
 
 

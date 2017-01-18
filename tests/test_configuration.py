@@ -1,8 +1,10 @@
 import unittest
-from config import read_variables
+from ausroller.config import read_variables
 from tempfile import NamedTemporaryFile
 
+
 class ConfigurationTest(unittest.TestCase):
+
     def test_duplicate_config_key(self):
         config = '{"test": "test1", "test":"test2"}'
         with NamedTemporaryFile() as tempfile:

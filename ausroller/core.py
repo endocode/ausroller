@@ -28,17 +28,20 @@ from gbp.git import repository
 import os
 import logging
 from docopt import docopt
-from config import Configuration
 
+from config import Configuration
 from kube import KubeCtl
 
 RESOURCES = ["configmap", "deployment", "secrets",
              "service", "pod", "replicationcontroller"]
 
+
 class Ausroller(object):
+
     def __init__(self, args):
         self.config = Configuration(args)
-        self.kubectl = KubeCtl(self.config.context, self.config.namespace, self.config.kubectlpath, (self.config.is_dryrun or self.config.is_dryrun_but_templates))
+        self.kubectl = KubeCtl(self.config.context, self.config.namespace, self.config.kubectlpath,
+                               (self.config.is_dryrun or self.config.is_dryrun_but_templates))
 
     def render_template(self, resource):
         '''
@@ -131,7 +134,8 @@ class Ausroller(object):
         else:
             logging.info("Rolling out resources {}".format(resources))
         for resource in resources:
-            resourcefile = os.path.join(self.config.rollout_path, "{}s".format(resource), "{}-{}.yaml".format(self.config.deployment['name'], resource))
+            resourcefile = os.path.join(self.config.rollout_path, "{}s".format(
+                resource), "{}-{}.yaml".format(self.config.deployment['name'], resource))
             self.kubectl.apply_resourcefile(resourcefile)
 
     def deploy(self):
