@@ -45,7 +45,8 @@ class Ausroller(object):
         try:
             self.variables = read_variables(self.secretsfile)
         except KeyError as e:
-            logging.error("Cannot read secret variables from \"{}\"! [{}]".format(self.secretsfile, e))
+            logging.error("Cannot read secret variables from \"{}\"! [{}]".format(
+                self.secretsfile, e))
             sys.exit(1)
 
         self.extra_variables = {}
@@ -60,7 +61,8 @@ class Ausroller(object):
             try:
                 self.extra_variables = read_variables(self.extravarsfile)
             except KeyError as e:
-                logging.error("Cannot read extra variables from \"{}\"! [{}]".format(self.extravarsfile, e))
+                logging.error("Cannot read extra variables from \"{}\"! [{}]".format(
+                    self.extravarsfile, e))
                 sys.exit(1)
         self.kubectl_cmd = 'kubectl --namespace={}'.format(self.namespace)
 
@@ -96,7 +98,8 @@ class Ausroller(object):
         self.is_dryrun = args.dryrun
         self.is_dryrun_but_templates = args.dryruntemp
         if self.is_dryrun and self.is_dryrun_but_templates:
-            logging.warn("Multiple dryrun options specified using complete dry-run (-d)")
+            logging.warn(
+                "Multiple dryrun options specified using complete dry-run (-d)")
         self.is_verbose = args.verbose
         self.configfile = args.config
 
@@ -198,28 +201,35 @@ class Ausroller(object):
                                   self.app_name,
                                   self.app_version,
                                   self.commit_message))
-            logging.info(repo.show(self.rollout_path))
+            logging.debug("Commited changes:\n{}".format(
+                repo.show(self.rollout_path)))
         else:
             logging.warn(
                 "Definition of rollout already exists. Nothing changed.")
 
     def rollout(self, resources):
-        logging.info("Rolling out resources {}".format(resources))
+        if self.is_dryrun or self.is_dryrun_but_templates:
+            logging.info("Dry-run: skip applying changes to Kubernetes")
+        else:
+            logging.info("Rolling out resources {}".format(resources))
         for resource in resources:
-            if self.is_dryrun or self.is_dryrun_but_templates:
-                logging.info("Dry-run: skip applying changes to Kubernetes")
-                return
-
             cmd = shlex.split("{} apply -f {}".format(self.kubectl_cmd, os.path.join(
                 self.rollout_path, "{}s".format(resource), "{}-{}.yaml".format(self.app_name, resource))))
+            if self.is_dryrun or self.is_dryrun_but_templates:
+                logging.debug("Skipping '{}'".format(" ".join(cmd)))
+                continue
+            else:
+                logging.debug("Running '{}'".format(" ".join(cmd)))
+
             try:
                 update_out = subprocess.check_output(cmd)
             except:
                 logging.error("Applying the {} failed:".format(resource))
                 sys.exit(1)
 
+
 def _custom_json_pairs_hook(pairs):
-    result =  dict()
+    result = dict()
     for key, value in pairs:
         if key in result:
             raise KeyError("Duplicate definition of \"{}\" found.".format(key))
@@ -227,12 +237,14 @@ def _custom_json_pairs_hook(pairs):
             result[key] = value
     return result
 
+
 def read_variables(varfile):
     variables = {}
     logging.debug("Reading vars from {}".format(varfile))
     with open(varfile) as f:
         variables = json.load(f, object_pairs_hook=_custom_json_pairs_hook)
     return variables
+
 
 def main():
     a = Ausroller()
