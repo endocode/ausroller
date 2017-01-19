@@ -5,10 +5,11 @@
 
 Usage:
     ausroller (-h | --help)
-    ausroller -n <namespace> [-c <config>] [-e <extra_vars>] [-s <secret_vars>] [--dryruntemp | --dryrun] [--verbose] (-a <app_name> -v <app_version>)
+    ausroller -n <namespace> -C <context> [-c <config>] [-e <extra_vars>] [-s <secret_vars>] [--dryruntemp | --dryrun] [--verbose] (-a <app_name> -v <app_version>)
 
 Options:
       -c --config <config>          Path to config file [defaults to $HOME/.ausroller.ini]
+      -C --context <context>        Kubernetes context to use
       -a --app <app_name>           Name of an app to roll out
       -v --version <app_version>    Version of the app to roll out
       -d --dryrun                   Dry run: just print but don't write nor apply
@@ -37,7 +38,7 @@ RESOURCES = ["configmap", "deployment", "secrets",
 class Ausroller(object):
     def __init__(self, args):
         self.config = Configuration(args)
-        self.kubectl = KubeCtl(self.config.namespace, self.config.kubectlpath, (self.config.is_dryrun or self.config.is_dryrun_but_templates))
+        self.kubectl = KubeCtl(self.config.context, self.config.namespace, self.config.kubectlpath, (self.config.is_dryrun or self.config.is_dryrun_but_templates))
 
     def render_template(self, resource):
         '''
@@ -111,6 +112,7 @@ class Ausroller(object):
                 logging.debug("Dry run: skipping commit")
                 return
 
+            logging.debug("Commiting changes")
             repo.commit_files(files_to_commit,
                               "[{}] Created rollout for {} with version {}\n\n{}".format(
                                   self.config.namespace,

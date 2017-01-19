@@ -1,10 +1,12 @@
-from ConfigParser import ConfigParser
+from ConfigParser import ConfigParser, NoOptionError
 import json
 import logging
 import os
 import sys
 
+
 class CommandlineArgs(object):
+
     def __init__(self, arguments):
         self.args = arguments
 
@@ -21,8 +23,11 @@ class CommandlineArgs(object):
 
 
 class Configuration(object):
+
     def __init__(self, arguments):
         args = CommandlineArgs(arguments)
+
+        self.context = args.get_value('--context')
 
         self.deployment = {}
         self.deployment['name'] = args.get_value('--app')
@@ -33,7 +38,8 @@ class Configuration(object):
         self.is_dryrun_but_templates = args.get_value('--dryruntemp')
         self.is_verbose = args.get_value('--verbose')
 
-        config_file = args.get_value("--config", os.path.join(os.path.expanduser("~"), ".ausroller.ini"))
+        config_file = args.get_value(
+            "--config", os.path.join(os.path.expanduser("~"), ".ausroller.ini"))
         self.read_configfile(config_file)
         self.namespace = args.get_value("--namespace")
 
@@ -43,7 +49,7 @@ class Configuration(object):
             self.repopath, 'rollout', self.namespace)
 
         self.secretsfile = args.get_value("--secret", os.path.join(
-                self.repopath, 'secrets', self.namespace, 'secret_vars.json'))
+            self.repopath, 'secrets', self.namespace, 'secret_vars.json'))
         try:
             self.secrets = read_variables(self.secretsfile)
         except Exception as e:
@@ -51,7 +57,8 @@ class Configuration(object):
                 self.secretsfile, e))
             sys.exit(1)
 
-        self.extravarsfile = args.get_value("--extravars", os.path.join(self.repopath, 'manifests', self.namespace, 'extra_vars.json'))
+        self.extravarsfile = args.get_value(
+            "--extravars", os.path.join(self.repopath, 'manifests', self.namespace, 'extra_vars.json'))
         self.extra_variables = {}
         if os.path.exists(self.extravarsfile):
             try:
@@ -61,10 +68,9 @@ class Configuration(object):
                     self.extravarsfile, e))
                 sys.exit(1)
 
-        self.kubectl_cmd = 'kubectl --namespace={}'.format(self.namespace)
-
     def read_configfile(self, configfile):
         cp = ConfigParser()
+        configuration = [(self.context, 'repopath'), ('ausroller', 'kubectlpath')]
         try:
             logging.debug("Reading JSON file {}".format(configfile))
             cp.read(configfile)
@@ -73,12 +79,12 @@ class Configuration(object):
                 "Cannot read configuration file \"{}\"!".format(configfile))
             sys.exit(1)
 
-        try:
-            self.repopath = os.path.realpath(cp.get('ausroller', 'repopath'))
-        except:
-            logging.error("Cannot read 'repopath' from configuration file \"{}\"!".format(
-                configfile))
-            sys.exit(1)
+        for (section, option) in configuration:
+            try:
+                setattr(self, option, os.path.realpath(cp.get(section, option)))
+            except NoOptionError:
+                logging.warn("Cannot read option '{}' from section '{}' in configuration file \"{}\"!".format(option, section, configfile))
+                setattr(self, option, None)
 
 
 def _custom_json_pairs_hook(pairs):
