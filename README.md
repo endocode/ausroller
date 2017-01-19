@@ -9,7 +9,7 @@ git clone --recursive https://github.com/endocode/ausroller
 
 ## Intro
 
-Ausroller is a tool create, update and rollout Kubernetes resource yamls from a template.
+Ausroller is a tool to create, update and rollout Kubernetes resource yamls from a template.
 
 Our central configuration repository ``k8s-resources`` contains the
 directories ``templates``, ``rollout``, ``namespaces`` and ``secrets``.
@@ -62,17 +62,20 @@ version numbers of all our components.__
 
 ## Initial configuration
 
-Install dependencies:
+### Install ausroller
+
+At the moment ausroller is not compatible with Python3. If you are using a distribution that defaults to Python3 e.g. Arch Linux you should use a virtual environment as follows:
 ```
-sudo apt-get install git-buildpackage python-jinja2
+virtualenv -p python2 ausroller
+source ausroller/bin/activate
 ```
 
-or if you stuck on MacOS (or a Linux distro not shipping git-buildpackage):
+#### Install ausroller using pip:
 ```
-pip install [--user] -r requirements.txt
+pip install git+https://github.com/endocode/ausroller
 ```
 
-Ausroller needs a config file to read the path to the "rollout" git repo from.
+Ausroller needs a configuration file to read the path to the "rollout" git repository from.
 It looks for $HOME/.ausroller.ini by default but the path to the ausroller.ini
 can be overwritten on command line: ``` ausroller [...] -c /etc/ausroller.ini```
 
@@ -80,60 +83,56 @@ can be overwritten on command line: ``` ausroller [...] -c /etc/ausroller.ini```
 Basic ausroller.ini looks like that:
 ```
 [ausroller]
+<kubectlpath = /opt/k8s/bin/kubectl>
+
+[<kubernetes context>]
 repopath = /home/<user>/git/k8s-resources
 ```
+If you omit the `kubectlpath` option ausroller will try to find `kubectl` on your `$PATH` to rollout your resources.
 
-For easier usage you can link the ausroller.py from your cloned repository to
-/usr/local/bin like that:
-```
-sudo ln -s $(pwd)/ausroller.py /usr/local/bin
-```
+You must specify the path to the repository to use for each Kubernetes context you want to use.
 
-__Ausroller expects a configured kubectl in the path.__
-That means it calls  ```kubectl ``` to rollout or update the deployments on the
-kubernetes cluster. Ensure that you talk with the right Kubernetes cluster
-by running ```kubectl config view```.
-
-
+List configured Kubernetes contexts:
+`kubectl config get-contexts`
 
 ## Usage
 
-If everything prepared you can run the ausroller.py with the two mandatory parameters:
+If everything is prepared you can run the ausroller with the four mandatory parameters:
 
 ```
-ausroller.py --namespace another-namespace --app your-app --version 47.11-1a
+ausroller --namespace another-namespace --context another-context --app your-app --version 47.11-1a
 ```
 
 This command looks up for Kubernetes resource template files e.g. called
-```your-app-deplyoment.tpl.yaml``` or ```your-app-configmap.tpl.yaml``` in the
-directory ```templates/another-namespace/deplyoments/``` resp.
+```your-app-deployment.tpl.yaml``` or ```your-app-configmap.tpl.yaml``` in the
+directory ```templates/another-namespace/deployments/``` resp.
 ```templates/another-namespace/configmaps/``` in your configured repo-path. It
 will fill in the version given by the command line parameter ```--version```,
 add and commit the created Kubernetes resource files in the path
-```rollout/another-namespace/deployments/your-app-deplyoment.yaml``` resp.
+```rollout/another-namespace/deployments/your-app-deployment.yaml``` resp.
 ```rollout/another-namespace/configmaps/your-app-configmap.yaml```. Then it
 checks if the Kubernetes resources already exist and updates it by running and
 roll out the saved file by running ```kubectl apply -f
 your-app-configmap.yaml``` resp. ```kubectl apply -f
-your-app-deplyoment.yaml```. If a Kubernetes resource is unknown ausroller.py
+your-app-deplyoment.yaml```. If a Kubernetes resource is unknown ausroller
 creates it.
 
-If you want more explanatory commit messages in the repository you can run ausroller.py with the optional parameter ```--message``` :
+If you want more explanatory commit messages in the repository you can run ausroller with the optional parameter ```--message``` :
 ```
-ausroller.py --namespace another-namespace --app my-app ---version 1.2.3-12a --message "Hotfix for foobar"
+ausroller --namespace another-namespace --context another-context --app my-app ---version 1.2.3-12a --message "Hotfix for foobar"
 ```
 
 
 ## Prepare and rollout a deployment
 
-Create a normal deployment.yaml for your application but put the placeholder ` {{ app_version }} ` into the `image:` line instead of the Docker image tag. The placeholder will be substituted by the value of the `--version` cli parameter when running ausroller.py.
+Create a normal deployment.yaml for your application but put the placeholder ` {{ app_version }} ` into the `image:` line instead of the Docker image tag. The placeholder will be substituted by the value of the `--version` cli parameter when running ausroller.
 
 Save and commit the template into the directory `templates/deployments/` with the
 filename  `<your-app>-deployment.tpl.yaml`
 
-Now run `ausroller.py` like that
+Now run `ausroller` like that
 ```
-ausroller.py --namespace another-namespace --app your-app --version 47.11-1a --message "First rollout"
+ausroller --namespace another-namespace --context another-context --app your-app --version 47.11-1a --message "First rollout"
 ```
 
 Ausroller will take the template you create (choosen by the value of parameter `--app`), replace the `{{ app_version}}` placeholder by the value of the parameter `--version`, add and commit the resulting file `your-app-deplyoment.yaml` to the directory `rollout/another-namespace/deployments/` and create the deployment in the Kubernetes cluster.
@@ -152,6 +151,11 @@ After that we will upgrade the Nginx to a newer version.
 
 * `kubectl` has to be configured to a cluster
 
+For a quick-start use `minikube` to setup a local cluster.
+For example bring up a cluster in a kvm virtual machine:
+```
+minikube --vm-driver=kvm start
+```
 ### Steps
 
 Make sure that we have the namespace we want to rollout to:
@@ -161,7 +165,7 @@ kubectl apply -f example-resources/namespaces/another-namespace.yaml
 
 Rollout Nginx. This will produce a commit in `example-resources/`:
 ```
-./ausroller.py --config example-resources/ausroller.ini --namespace another-namespace --app nginx --version 1.10.2-alpine
+ausroller --config example-resources/ausroller.ini --namespace another-namespace --context another-context --app nginx --version 1.10.2-alpine
 ```
 
 Check what happened:
@@ -172,7 +176,7 @@ kubectl --namespace=another-namespace get svc,deployment,pods
 Upgrade Nginx:
 
 ```
-./ausroller.py --config example-resources/ausroller.ini --namespace another-namespace --app nginx --version 1.11.5-alpine
+ausroller --config example-resources/ausroller.ini --namespace another-namespace --context another-context --app nginx --version 1.11.5-alpine
 ```
 
 Again check what happened:
@@ -183,7 +187,6 @@ kubectl --namespace=another-namespace get svc,deployment,pods
 ### Cleanup
 
 Delete Kubernetes resources:
-
 ```
 kubectl --namespace=another-namespace delete svc nginx-service
 ```
