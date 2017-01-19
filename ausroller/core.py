@@ -2,6 +2,7 @@
 
 from jinja2 import Template, Environment, FileSystemLoader, exceptions
 from gbp.git import repository
+from kube import KubeCtl
 import subprocess
 import shlex
 import logging
@@ -16,6 +17,9 @@ RESOURCES = ["configmap", "deployment", "secrets",
 class Ausroller(object):
     def __init__(self, configurator):
         self.c = configurator
+        self.kubectl = KubeCtl(self.c.namespace, self.c.kubectlpath,
+                               (self.c.is_dryrun or
+                                self.c.is_dryrun_but_templates))
 
     def render_template(self, resource):
         env = Environment(
@@ -104,15 +108,9 @@ class Ausroller(object):
         else:
             logging.info("Rolling out resources {}".format(resources))
         for resource in resources:
-            cmd = shlex.split("{} apply -f {}".format(self.c.kubectl_cmd, os.path.join(
-                self.c.rollout_path, "{}s".format(resource), "{}-{}.yaml".format(self.c.app_name, resource))))
-            if self.c.is_dryrun or self.c.is_dryrun_but_templates:
-                logging.debug("Skipping '{}'".format(" ".join(cmd)))
-                continue
-            else:
-                logging.debug("Running '{}'".format(" ".join(cmd)))
-            try:
-                update_out = subprocess.check_output(cmd)
-            except:
-                logging.error("Applying the {} failed:".format(resource))
-                sys.exit(1)
+            resourcefile = os.path.join(self.c.rollout_path,
+                                        "{}s".format(resource),
+                                        "{}-{}.yaml".format(
+                                            self.c.app_name,
+                                            resource))
+            self.kubectl.apply_resourcefile(resourcefile)
