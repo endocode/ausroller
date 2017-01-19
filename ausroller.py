@@ -24,14 +24,12 @@ Options:
 import sys
 from jinja2 import Template, Environment, FileSystemLoader, exceptions
 from gbp.git import repository
-import subprocess
-import ConfigParser
 import os
-import json
-import shlex
 import logging
 from docopt import docopt
 from config import Configuration
+
+from kube import KubeCtl
 
 RESOURCES = ["configmap", "deployment", "secrets",
              "service", "pod", "replicationcontroller"]
@@ -39,6 +37,7 @@ RESOURCES = ["configmap", "deployment", "secrets",
 class Ausroller(object):
     def __init__(self, args):
         self.config = Configuration(args)
+        self.kubectl = KubeCtl(self.config.namespace, self.config.kubectlpath, (self.config.is_dryrun or self.config.is_dryrun_but_templates))
 
     def render_template(self, resource):
         '''
@@ -130,19 +129,12 @@ class Ausroller(object):
         else:
             logging.info("Rolling out resources {}".format(resources))
         for resource in resources:
-            cmd = shlex.split("{} apply -f {}".format(self.config.kubectl_cmd, os.path.join(
-                self.config.rollout_path, "{}s".format(resource), "{}-{}.yaml".format(self.config.deployment['name'], resource))))
-            if self.config.is_dryrun or self.config.is_dryrun_but_templates:
-                logging.debug("Skipping '{}'".format(" ".join(cmd)))
-                continue
-            else:
-                logging.debug("Running '{}'".format(" ".join(cmd)))
+            resourcefile = os.path.join(self.config.rollout_path, "{}s".format(resource), "{}-{}.yaml".format(self.config.deployment['name'], resource))
+            self.kubectl.apply_resourcefile(resourcefile)
 
-            try:
-                update_out = subprocess.check_output(cmd)
-            except:
-                logging.error("Applying the {} failed:".format(resource))
-                sys.exit(1)
+    def deploy(self):
+        resources = self.prepare_rollout()
+        self.rollout(resources)
 
 
 def main():
@@ -159,8 +151,7 @@ def main():
     gbplogger.propagate = False
 
     a = Ausroller(arguments)
-    resources = a.prepare_rollout()
-    a.rollout(resources)
+    a.deploy()
 
 if __name__ == '__main__':
     main()
