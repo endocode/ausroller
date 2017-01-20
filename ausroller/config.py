@@ -1,4 +1,4 @@
-from ConfigParser import ConfigParser, NoOptionError
+from ConfigParser import ConfigParser, NoOptionError, NoSectionError
 import json
 import logging
 import os
@@ -89,6 +89,10 @@ class Configuration(object):
                 logging.warn("Cannot read option '{}' from section '{}' in configuration file \"{}\"!".format(
                     option, section, configfile))
                 setattr(self, option, None)
+            except NoSectionError:
+                logging.error("Missing section {} in configuration file {}. Abort execution.".format(
+                    section, configfile))
+                sys.exit(1)
 
 
 def _custom_json_pairs_hook(pairs):
