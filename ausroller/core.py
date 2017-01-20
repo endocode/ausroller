@@ -35,6 +35,22 @@ from kube import KubeCtl
 RESOURCES = ["configmap", "deployment", "secrets",
              "service", "pod", "replicationcontroller"]
 
+ROLLINGPIN = """
+          _______________________
+   _____ /|                     |\ _____
+  (_____| |                     | |_____)
+         \|_____________________|/
+            A
+              U
+                S
+                  R
+                    O
+                      L
+                        L
+                          E
+                            R
+"""
+
 
 class Ausroller(object):
 
@@ -144,6 +160,7 @@ class Ausroller(object):
 
 
 def main():
+    print(ROLLINGPIN)
     arguments = docopt(__doc__)
     # configure logging
     log_level = logging.INFO
