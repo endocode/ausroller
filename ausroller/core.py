@@ -58,6 +58,7 @@ class Ausroller(object):
         self.config = Configuration(args)
         self.kubectl = KubeCtl(self.config.context, self.config.namespace, self.config.kubectlpath,
                                (self.config.is_dryrun or self.config.is_dryrun_but_templates))
+        self.resources_to_rollout = []
 
     def render_template(self, resource):
         '''
@@ -81,7 +82,11 @@ class Ausroller(object):
             rendered_template = self.render_template(resource)
             if rendered_template:
                 result_map[resource] = self.render_template(resource)
-        return self.write_yamls(result_map)
+        if len(result_map) > 0:
+            self.write_yamls(result_map)
+        else:
+            logging.warn("No templates found for {}".format(
+                self.config.deployment['name']))
 
     def write_yamls(self, resources):
         repo = repository.GitRepository(self.config.repopath)
@@ -120,11 +125,15 @@ class Ausroller(object):
         else:
             logging.info(
                 "Dry-run: skip writing files for {}".format(resources.keys()))
-        return resources.keys()
+        self.resources_to_rollout = resources.keys()
 
     def commit_rollout(self, files_to_commit):
         repo = repository.GitRepository(self.config.repopath)
         (repo_is_clean, repo_msg) = repo.is_clean()
+
+        if len(files_to_commit) == 0:
+            repo.warn("Nothing to commit.")
+            return
 
         if not repo_is_clean:
             if self.config.is_dryrun or self.config.is_dryrun_but_templates:
@@ -144,19 +153,26 @@ class Ausroller(object):
             logging.warn(
                 "Definition of rollout already exists. Nothing changed.")
 
-    def rollout(self, resources):
+    def rollout(self):
+        if len(self.resources_to_rollout) == 0:
+            logging.warn("No resources to roll out.")
+            return
+
         if self.config.is_dryrun or self.config.is_dryrun_but_templates:
             logging.info("Dry-run: skip applying changes to Kubernetes")
+            return
         else:
-            logging.info("Rolling out resources {}".format(resources))
-        for resource in resources:
+            logging.info("Rolling out resources {}".format(
+                self.resources_to_rollout))
+
+        for resource in self.resources_to_rollout:
             resourcefile = os.path.join(self.config.rollout_path, "{}s".format(
                 resource), "{}-{}.yaml".format(self.config.deployment['name'], resource))
             self.kubectl.apply_resourcefile(resourcefile)
 
     def deploy(self):
-        resources = self.prepare_rollout()
-        self.rollout(resources)
+        self.prepare_rollout()
+        self.rollout()
 
 
 def main():
