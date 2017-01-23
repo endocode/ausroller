@@ -1,3 +1,0 @@
-gbp >= 0.8.9
-dateutils
-jinja2
