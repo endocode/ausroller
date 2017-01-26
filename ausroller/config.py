@@ -99,6 +99,12 @@ class Configuration(object):
         self.kubectl_cmd = 'kubectl --namespace={}'.format(self.namespace)
 
     def _custom_json_pairs_hook(self, pairs):
+        ''' (list of pairs) -> dict
+            Checks if in a given list of key-value pairs duplicate keys exists.
+            >>> c = Configuration()
+            >>> c._custom_json_pairs_hook([('key','value'),('key1','value')])
+            {'key1': 'value', 'key': 'value'}
+        '''
         result = dict()
         for key, value in pairs:
             if key in result:
@@ -108,6 +114,9 @@ class Configuration(object):
         return result
 
     def read_variables(self, varfile):
+        ''' (string) -> dict
+            Reads from a given json filename and returns a dict.
+        '''
         variables = {}
         logging.debug("Reading vars from {}".format(varfile))
         with open(varfile) as f:
