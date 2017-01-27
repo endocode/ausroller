@@ -48,6 +48,7 @@ class Configuration(object):
         self.configfile = args.config
         self.extravarsfile = args.extravars
         self.secretsfile = args.secret
+        self.kubectlpath = None
 
     def read_config(self):
         home_dir = os.path.expanduser("~")
