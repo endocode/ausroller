@@ -8,6 +8,7 @@ import shlex
 import logging
 import os
 import sys
+import glob
 
 
 RESOURCES = ["configmap", "deployment", "secrets",
@@ -32,17 +33,17 @@ class Ausroller(object):
             return
         return template.render(self.c.variables, app_version=self.c.app_version, namespace=self.c.namespace, **self.c.extra_variables)
 
-    def prepare_rollout(self):
-        logging.info("Preparing rollout of {} in version {}".format(
+    def prepare_k8s_resources(self):
+        logging.info("Preparing k8s resources of {} in version {}".format(
             self.c.app_name, self.c.app_version))
         result_map = {}
         for resource in RESOURCES:
             rendered_template = self.render_template(resource)
             if rendered_template:
                 result_map[resource] = self.render_template(resource)
-        return self.write_yamls(result_map)
+        return result_map
 
-    def write_yamls(self, resources):
+    def write_k8s_resources(self, resources):
         repo = repository.GitRepository(self.c.repopath)
         (repo_is_clean, repo_msg) = repo.is_clean()
         if not repo_is_clean:
@@ -114,3 +115,47 @@ class Ausroller(object):
                                             self.c.app_name,
                                             resource))
             self.kubectl.apply_resourcefile(resourcefile)
+
+    def run_plugins(self, hook, data={}):
+        '''
+        (str, dict) -> bool
+        Execute all plugins in the pluginsdir/<hook>/
+        If a plugin returns with a non-zero return code then exit.
+        '''
+        logging.debug("Running plugins for hook \"{}\".".format(hook))
+        for plugin in glob.glob(os.path.join(self.c.plugin_path, hook, '*')):
+            logging.debug("Running plugin {}".format(plugin))
+            if plugin.endswith('.py'):
+                # Run a python script
+                #  The Python script must run sys.exit(1) to stop the execution of Ausroller
+                #  Output should only genereated by logging.debug() / logging.info()
+                execfile(plugin, data)
+            else:
+                # Run a arbitrary plugin
+                #  If the execution of the plugin returns a non-zero return code
+                #  the exectution of ausroller stops.
+                try:
+                    plugin_out = subprocess.check_output(plugin, stderr=subprocess.STDOUT)
+                    logging.debug(plugin_out)
+                except subprocess.CalledProcessError as e:
+                    logging.error("Plugin {} exited unsuccessful:\n {}".format(plugin, e.output))
+                    sys.exit(1)
+
+    def deploy(self):
+        '''
+        Prepare, write and rollout the k8s resources
+        '''
+        # render all templates for the given application
+        resources = self.prepare_k8s_resources()
+
+        # post_prepare_k8s_resources
+        self.run_plugins("post_prepare_k8s_resources")
+
+        # write rendered templates as filesystem
+        res_names = self.write_k8s_resources(resources)
+
+        # post_write_k8s_resources
+        self.run_plugins("post_write_k8s_resources")
+
+        # rollout kubernetes resources
+        self.rollout(res_names)

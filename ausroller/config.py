@@ -49,6 +49,8 @@ class Configuration(object):
         self.extravarsfile = args.extravars
         self.secretsfile = args.secret
         self.kubectlpath = None
+        self.plugin_path = os.path.join(os.path.expanduser("~"),
+                                        ".ausroller_plugins/")
 
     def read_config(self):
         home_dir = os.path.expanduser("~")
