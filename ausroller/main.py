@@ -15,8 +15,7 @@ def main():
     c.read_config()
 
     a = Ausroller(c)
-    resources = a.prepare_rollout()
-    a.rollout(resources)
+    a.deploy()
 
 if __name__ == '__main__':
     main()
