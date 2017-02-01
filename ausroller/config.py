@@ -14,7 +14,7 @@ class Configuration(object):
         parser = argparse.ArgumentParser()
         parser.add_argument('-a', '--app', type=str, required=True,
                             help='Application to rollout')
-        parser.add_argument('-v', '--version', type=str, required=True,
+        parser.add_argument('-v', '--ver', type=str, required=True,
                             help='Version to rollout')
         parser.add_argument('-m', '--message', type=str, required=False,
                             default='', help='Optional commit message')
@@ -35,6 +35,8 @@ class Configuration(object):
                             help='Path to file holding [<repopath>/secrets/<namespace>/secret_vars.json]')
         parser.add_argument('-C', '--context', type=str, required=True,
                             help='Kubernetes context to use]')
+        parser.add_argument('--version', action='version',
+                            version='0.2.0-alpha')
         args = parser.parse_args()
 
         self.app_name = args.app
