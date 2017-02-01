@@ -41,6 +41,8 @@ class Ausroller(object):
             rendered_template = self.render_template(resource)
             if rendered_template:
                 result_map[resource] = self.render_template(resource)
+        if len(result_map) == 0:
+            logging.warn("No templates found for {}".format(self.c.app_name))
         return result_map
 
     def write_k8s_resources(self, resources):
@@ -86,6 +88,10 @@ class Ausroller(object):
         repo = repository.GitRepository(self.c.repopath)
         (repo_is_clean, repo_msg) = repo.is_clean()
 
+        if len(files_to_commit) == 0:
+            logging.warn("Nothing to commit.")
+            return
+
         if not repo_is_clean:
             if self.c.is_dryrun or self.c.is_dryrun_but_templates:
                 logging.debug("Dry run: skipping commit")
@@ -104,6 +110,10 @@ class Ausroller(object):
                 "Definition of rollout already exists. Nothing changed.")
 
     def rollout(self, resources):
+        if len(resources) == 0:
+            logging.warn("No resource to roll out.")
+            return
+
         if self.c.is_dryrun or self.c.is_dryrun_but_templates:
             logging.info("Dry-run: skip applying changes to Kubernetes")
         else:
