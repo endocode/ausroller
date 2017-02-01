@@ -1,6 +1,5 @@
 import unittest
-from ausroller import KubeCtl
-from subprocess import CalledProcessError
+from ausroller import KubeCtl, KubeCtlException
 
 
 class KubeCtlTest(unittest.TestCase):
@@ -9,7 +8,8 @@ class KubeCtlTest(unittest.TestCase):
         '''
         Check that no command is executed when using dryrun.
         '''
-        l = KubeCtl('unittest', path="/does/not/exist", dryrun=True)
+        l = KubeCtl('unittest', 'unittest',
+                    path="/does/not/exist", dryrun=True, skip_verify=True)
         retval = l._run('version')
         self.assertEqual(None, retval)
 
@@ -17,29 +17,30 @@ class KubeCtlTest(unittest.TestCase):
         '''
         Check that an Exception is raised when the command fails.
         '''
-        l = KubeCtl('unittest', path='/bin/false', dryrun=False)
-        with self.assertRaises(CalledProcessError):
+        l = KubeCtl('unittest', 'unittest', path='/bin/false', dryrun=False, skip_verify=True)
+        with self.assertRaises(KubeCtlException):
             l._run('a')
 
     def test_apply_resourcefile(self):
         '''
-        Check that the sub command is proper constructed.
+        Check that the sub command is properly constructed.
         We let the command execution fail on purpose to get
         an exception back from the called method so we can check the
         complete command.
         '''
-        t = KubeCtl(namespace='doctest', path='/bin/false')
-        with self.assertRaises(CalledProcessError) as e:
+        t = KubeCtl('unittest', namespace='doctest', path='/bin/false', skip_verify=True)
+        with self.assertRaises(KubeCtlException) as e:
             t.apply_resourcefile('/path/to/resourcefile')
-        self.assertEqual(e.exception.cmd, ['/bin/false',
-                                           '--namespace=doctest',
-                                           'apply', '-f',
-                                           '/path/to/resourcefile'])
+        self.assertEqual(e.exception.cause.cmd, ['/bin/false',
+                                                 '--context=unittest',
+                                                 '--namespace=doctest',
+                                                 'apply', '-f',
+                                                 '/path/to/resourcefile'])
 
     def test_KubeCtl_defaults(self):
         '''
         Check that KubeCtl uses sane defaults.
         '''
-        k = KubeCtl('unittest', path=None)
+        k = KubeCtl('unittest', 'unittest', path=None, skip_verify=True)
         self.assertEqual('kubectl', k.path)
         self.assertEqual(False, k.dryrun)

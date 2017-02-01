@@ -4,7 +4,8 @@ import sys
 import os
 import json
 import logging
-import ConfigParser
+from ConfigParser import ConfigParser, NoOptionError, NoSectionError
+from kube import kubectl_default_bin
 
 
 class Configuration(object):
@@ -32,6 +33,8 @@ class Configuration(object):
                             help='Path to file holding extra variables')
         parser.add_argument('-s', '--secret', type=str, required=False,
                             help='Path to file holding [<repopath>/secrets/<namespace>/secret_vars.json]')
+        parser.add_argument('-C', '--context', type=str, required=True,
+                            help='Kubernetes context to use]')
         args = parser.parse_args()
 
         self.app_name = args.app
@@ -48,27 +51,43 @@ class Configuration(object):
         self.configfile = args.config
         self.extravarsfile = args.extravars
         self.secretsfile = args.secret
-        self.kubectlpath = None
+        self.context = args.context
 
     def read_config(self):
         home_dir = os.path.expanduser("~")
         # read config file
         if not self.configfile:
             self.configfile = os.path.join(home_dir, ".ausroller.ini")
-        cp = ConfigParser.ConfigParser()
+
+        cp = ConfigParser()
+        configuration = [(self.context, 'repopath'),
+                         ('ausroller', 'kubectlpath')]
         try:
+            logging.debug("Reading JSON file {}".format(self.configfile))
             cp.read(self.configfile)
         except:
             logging.error(
                 "Cannot read configuration file \"{}\"!".format(self.configfile))
             sys.exit(1)
 
-        try:
-            self.repopath = os.path.realpath(cp.get('ausroller', 'repopath'))
-        except:
-            logging.error("Cannot read 'repopath' from configuration file \"{}\"!".format(
-                self.configfile))
-            sys.exit(1)
+        for (section, option) in configuration:
+            try:
+                logging.debug(
+                    "Trying to read option {} from section {}".format(option, section))
+                setattr(self, option, os.path.realpath(
+                    cp.get(section, option)))
+            except NoOptionError:
+                logging.warn("Cannot read option '{}' from section '{}' in configuration file \"{}\"!".format(
+                    option, section, self.configfile))
+                setattr(self, option, None)
+            except NoSectionError:
+                logging.error("Missing section {} in configuration file {}. Abort execution.".format(
+                    section, self.configfile))
+                sys.exit(1)
+
+        if not self.kubectlpath:
+            logging.warn("Trying to use default 'kubectl' from PATH")
+            self.kubectlpath = kubectl_default_bin
 
         # set paths and read in the json file with the secrets
         self.templates_path = os.path.join(self.repopath, 'templates')
@@ -80,7 +99,8 @@ class Configuration(object):
         try:
             self.variables = self.read_variables(self.secretsfile)
         except KeyError as e:
-            logging.error("Cannot read secret variables from \"{}\"! [{}]".format(self.secretsfile, e))
+            logging.error("Cannot read secret variables from \"{}\"! [{}]".format(
+                self.secretsfile, e))
             sys.exit(1)
 
         self.extra_variables = {}
@@ -95,31 +115,34 @@ class Configuration(object):
             try:
                 self.extra_variables = self.read_variables(self.extravarsfile)
             except KeyError as e:
-                logging.error("Cannot read extra variables from \"{}\"! [{}]".format(self.extravarsfile, e))
+                logging.error("Cannot read extra variables from \"{}\"! [{}]".format(
+                    self.extravarsfile, e))
                 sys.exit(1)
-        self.kubectl_cmd = 'kubectl --namespace={}'.format(self.namespace)
 
-    def _custom_json_pairs_hook(self, pairs):
+    @staticmethod
+    def _custom_json_pairs_hook(pairs):
         ''' (list of pairs) -> dict
             Checks if in a given list of key-value pairs duplicate keys exists.
-            >>> c = Configuration()
-            >>> c._custom_json_pairs_hook([('key','value'),('key1','value')])
+            >>> Configuration._custom_json_pairs_hook([('key','value'),('key1','value')])
             {'key1': 'value', 'key': 'value'}
         '''
         result = dict()
         for key, value in pairs:
             if key in result:
-                raise KeyError("Duplicate definition of \"{}\" found.".format(key))
+                raise KeyError(
+                    "Duplicate definition of \"{}\" found.".format(key))
             else:
                 result[key] = value
         return result
 
-    def read_variables(self, varfile):
+    @staticmethod
+    def read_variables(varfile):
         ''' (string) -> dict
             Reads from a given json filename and returns a dict.
         '''
         variables = {}
-        logging.debug("Reading vars from {}".format(varfile))
+        logging.debug("Reading variables from {}".format(varfile))
         with open(varfile) as f:
-            variables = json.load(f, object_pairs_hook=self._custom_json_pairs_hook)
+            variables = json.load(
+                f, object_pairs_hook=Configuration._custom_json_pairs_hook)
         return variables
