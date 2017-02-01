@@ -204,7 +204,7 @@ Remove the commits produced by `ausroller`:
 ( cd example-resources/ && git reset --hard HEAD~2 )
 ```
 
-### Development
+## Development
 
 When implementing new features place some unit tests in the tests directory.
 
