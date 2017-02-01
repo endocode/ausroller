@@ -2,7 +2,7 @@
 
 from jinja2 import Template, Environment, FileSystemLoader, exceptions
 from gbp.git import repository
-from kube import KubeCtl
+from kube import KubeCtl, KubeCtlException
 import subprocess
 import shlex
 import logging
@@ -15,9 +15,10 @@ RESOURCES = ["configmap", "deployment", "secrets",
 
 
 class Ausroller(object):
+
     def __init__(self, configurator):
         self.c = configurator
-        self.kubectl = KubeCtl(self.c.namespace, self.c.kubectlpath,
+        self.kubectl = KubeCtl(self.c.context, self.c.namespace, self.c.kubectlpath,
                                (self.c.is_dryrun or
                                 self.c.is_dryrun_but_templates))
 
@@ -113,7 +114,11 @@ class Ausroller(object):
                                         "{}-{}.yaml".format(
                                             self.c.app_name,
                                             resource))
-            self.kubectl.apply_resourcefile(resourcefile)
+            try:
+                self.kubectl.apply_resourcefile(resourcefile)
+            except KubeCtlException as e:
+                logging.error("Rolling out failed. [{}]".format(e))
+                sys.exit(1)
 
     def deploy(self):
         '''
