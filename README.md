@@ -50,6 +50,7 @@ directories ``templates``, ``rollout``, ``namespaces`` and ``secrets``.
     ├── deployments
     ├── pods
     ├── replicationcontrollers
+    ├── secrets
     └── services
 ```
 `templates` contains the deployment templates (Do'h!) and `rollout` contains the
