@@ -11,7 +11,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='ausroller',
-    version='0.2.0-alpha',
+    version='0.2.0',
     description='Deploy applications to kubernetes clusters',
     long_description=long_description,
 
