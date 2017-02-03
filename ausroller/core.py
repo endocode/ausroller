@@ -10,7 +10,7 @@ import os
 import sys
 
 
-RESOURCES = ["configmap", "deployment", "secrets",
+RESOURCES = ["configmap", "deployment", "secret",
              "service", "pod", "replicationcontroller"]
 
 

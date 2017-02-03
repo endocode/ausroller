@@ -50,6 +50,7 @@ directories ``templates``, ``rollout``, ``namespaces`` and ``secrets``.
     ├── deployments
     ├── pods
     ├── replicationcontrollers
+    ├── secrets
     └── services
 ```
 `templates` contains the deployment templates (Do'h!) and `rollout` contains the
@@ -100,14 +101,14 @@ List configured Kubernetes contexts:
 If everything is prepared you can run the ausroller with the four mandatory parameters:
 
 ```
-ausroller --namespace another-namespace --context another-context --app your-app --version 47.11-1a
+ausroller --namespace another-namespace --context another-context --app your-app --ver 47.11-1a
 ```
 
 This command looks up for Kubernetes resource template files e.g. called
 ```your-app-deployment.tpl.yaml``` or ```your-app-configmap.tpl.yaml``` in the
 directory ```templates/another-namespace/deployments/``` resp.
 ```templates/another-namespace/configmaps/``` in your configured repo-path. It
-will fill in the version given by the command line parameter ```--version```,
+will fill in the version given by the command line parameter ```--ver```,
 add and commit the created Kubernetes resource files in the path
 ```rollout/another-namespace/deployments/your-app-deployment.yaml``` resp.
 ```rollout/another-namespace/configmaps/your-app-configmap.yaml```. Then it
@@ -119,23 +120,23 @@ creates it.
 
 If you want more explanatory commit messages in the repository you can run ausroller with the optional parameter ```--message``` :
 ```
-ausroller --namespace another-namespace --context another-context --app my-app ---version 1.2.3-12a --message "Hotfix for foobar"
+ausroller --namespace another-namespace --context another-context --app my-app --ver 1.2.3-12a --message "Hotfix for foobar"
 ```
 
 
 ## Prepare and rollout a deployment
 
-Create a normal deployment.yaml for your application but put the placeholder ` {{ app_version }} ` into the `image:` line instead of the Docker image tag. The placeholder will be substituted by the value of the `--version` cli parameter when running ausroller.
+Create a normal deployment.yaml for your application but put the placeholder ` {{ app_version }} ` into the `image:` line instead of the Docker image tag. The placeholder will be substituted by the value of the `--ver` cli parameter when running ausroller.
 
 Save and commit the template into the directory `templates/deployments/` with the
 filename  `<your-app>-deployment.tpl.yaml`
 
 Now run `ausroller` like that
 ```
-ausroller --namespace another-namespace --context another-context --app your-app --version 47.11-1a --message "First rollout"
+ausroller --namespace another-namespace --context another-context --app your-app --ver 47.11-1a --message "First rollout"
 ```
 
-Ausroller will take the template you create (choosen by the value of parameter `--app`), replace the `{{ app_version}}` placeholder by the value of the parameter `--version`, add and commit the resulting file `your-app-deplyoment.yaml` to the directory `rollout/another-namespace/deployments/` and create the deployment in the Kubernetes cluster.
+Ausroller will take the template you create (choosen by the value of parameter `--app`), replace the `{{ app_version}}` placeholder by the value of the parameter `--ver`, add and commit the resulting file `your-app-deplyoment.yaml` to the directory `rollout/another-namespace/deployments/` and create the deployment in the Kubernetes cluster.
 
 ## Example
 
@@ -165,7 +166,7 @@ kubectl apply -f example-resources/namespaces/another-namespace.yaml
 
 Rollout Nginx. This will produce a commit in `example-resources/`:
 ```
-ausroller --config example-resources/ausroller.ini --namespace another-namespace --context minikube --app nginx --version 1.10.2-alpine
+ausroller --config example-resources/ausroller.ini --namespace another-namespace --context minikube --app nginx --ver 1.10.2-alpine
 ```
 
 Check what happened:
@@ -176,7 +177,7 @@ kubectl --namespace=another-namespace get svc,deployment,pods
 Upgrade Nginx:
 
 ```
-ausroller --config example-resources/ausroller.ini --namespace another-namespace --context minikube --app nginx --version 1.11.5-alpine
+ausroller --config example-resources/ausroller.ini --namespace another-namespace --context minikube --app nginx --ver 1.11.5-alpine
 ```
 
 Again check what happened:
@@ -204,7 +205,7 @@ Remove the commits produced by `ausroller`:
 ( cd example-resources/ && git reset --hard HEAD~2 )
 ```
 
-### Development
+## Development
 
 When implementing new features place some unit tests in the tests directory.
 
