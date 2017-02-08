@@ -3,8 +3,25 @@ from ausroller import Ausroller
 
 import logging
 
+ROLLINGPIN = """
+          _______________________
+   _____ /|                     |\ _____
+  (_____| |                     | |_____)
+         \|_____________________|/
+            A
+              U
+                S
+                  R
+                    O
+                      L
+                        L
+                          E
+                            R
+
+"""
 
 def main():
+    print(ROLLINGPIN)
     # parse arguments from command line and
     # read configuration file
 
