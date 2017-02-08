@@ -10,8 +10,11 @@ def main():
 
     c = Configuration()
     c.parse_args()
-    logging.basicConfig(format='%(levelname)s:\t%(message)s',
+    logging.basicConfig(format='%(levelname)s: %(message)s',
                         level=c.log_level)
+    # repair gbp logging
+    gbplogger = logging.getLogger("gbp")
+    gbplogger.propagate = False
     c.read_config()
 
     a = Ausroller(c)
