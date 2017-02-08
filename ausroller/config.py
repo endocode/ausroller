@@ -36,7 +36,7 @@ class Configuration(object):
         parser.add_argument('-C', '--context', type=str, required=True,
                             help='Kubernetes context to use]')
         parser.add_argument('--version', action='version',
-                            version='0.2.1-alpha')
+                            version='0.2.1')
         args = parser.parse_args()
 
         self.app_name = args.app
