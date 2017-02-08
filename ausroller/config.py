@@ -40,7 +40,7 @@ class Configuration(object):
         args = parser.parse_args()
 
         self.app_name = args.app
-        self.app_version = args.version
+        self.app_version = args.ver
         self.namespace = args.namespace
         self.commit_message = args.message
         self.is_dryrun = args.dryrun
