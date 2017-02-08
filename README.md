@@ -7,6 +7,16 @@ Clone this repository with `--recursive` to get the submodule example folder:
 git clone --recursive https://github.com/endocode/ausroller
 ```
 
+If your Kubernetes API server uses a self-signed certificate, you have to configure your `kubectl` properly.
+Either set the certificate authority:
+```
+kubectl config set-cluster <NAME> --certificate-authority=/path/to/ca.crt
+```
+or just skip crtificate verification:
+```
+kubectl config set-cluster <NAME> --insecure-skip-tls-verify=true
+```
+
 ## Intro
 
 Ausroller is a tool to create, update and rollout Kubernetes resource yamls from a template.
