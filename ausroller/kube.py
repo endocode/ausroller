@@ -33,7 +33,8 @@ class KubeCtl(object):
         self.ctx_pattern = re.compile(
             "^{}$".format(required_ctx), re.MULTILINE)
 
-        if not skip_verify:
+        if not skip_verify and not dryrun:
+            logging.debug("Running verification checks")
             try:
                 self.verify_version()
                 self.verify_context_available()
