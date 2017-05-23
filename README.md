@@ -83,8 +83,10 @@ source ausroller/bin/activate
 
 #### Install ausroller using pip:
 ```
-pip install git+https://github.com/endocode/ausroller
+pip install git+https://github.com/endocode/ausroller@0.3.0
 ```
+
+Remove the version number to install the latest version from the master branch.
 
 Ausroller needs a configuration file to read the path to the "rollout" git repository from.
 It looks for $HOME/.ausroller.ini by default but the path to the ausroller.ini
