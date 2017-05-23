@@ -11,7 +11,8 @@ import sys
 
 
 RESOURCES = ["configmap", "deployment", "secret",
-             "service", "pod", "replicationcontroller", "horizontalpodautoscaler"]
+             "service", "pod", "replicationcontroller",
+             "horizontalpodautoscaler", "statefulset"]
 
 
 class Ausroller(object):
