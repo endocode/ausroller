@@ -2,6 +2,8 @@ from setuptools import setup, find_packages
 # To use a consistent encoding
 from codecs import open
 from os import path
+from ausroller import version
+
 
 here = path.abspath(path.dirname(__file__))
 
@@ -11,7 +13,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='ausroller',
-    version='0.3.0',
+    version=version.__version__,
     description='Deploy applications to kubernetes clusters',
     long_description=long_description,
 
