@@ -83,7 +83,7 @@ source ausroller/bin/activate
 
 #### Install ausroller using pip:
 ```
-pip install git+https://github.com/endocode/ausroller@0.3.0
+pip install git+https://github.com/endocode/ausroller@0.3.1
 ```
 
 Remove the version number to install the latest version from the master branch.

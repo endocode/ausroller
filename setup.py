@@ -3,15 +3,19 @@ from setuptools import setup, find_packages
 from codecs import open
 from os import path
 
+
 here = path.abspath(path.dirname(__file__))
 
 # Get the long description from the README file
 with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
+# get the version number from ausroller/version.py
+execfile('ausroller/version.py')
+
 setup(
     name='ausroller',
-    version='0.3.0',
+    version=__version__,
     description='Deploy applications to kubernetes clusters',
     long_description=long_description,
 
