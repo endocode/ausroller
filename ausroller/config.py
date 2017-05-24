@@ -6,6 +6,7 @@ import json
 import logging
 from ConfigParser import ConfigParser, NoOptionError, NoSectionError
 from kube import kubectl_default_bin
+from ausroller import version
 
 
 class Configuration(object):
@@ -36,7 +37,7 @@ class Configuration(object):
         parser.add_argument('-C', '--context', type=str, required=True,
                             help='Kubernetes context to use]')
         parser.add_argument('--version', action='version',
-                            version='0.3.0-alpha')
+                            version=version.__version__)
         args = parser.parse_args()
 
         self.app_name = args.app
